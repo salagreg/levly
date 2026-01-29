@@ -5,6 +5,7 @@ CREATE TABLE utilisateur (
   date_de_naissance DATE NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
   mot_de_passe VARCHAR(255) NOT NULL,
+  compte_actif BOOLEAN NOT NULL DEFAULT true,
   date_creation TIMESTAMPTZ NOT NULL DEFAULT now(), 
   date_maj TIMESTAMPTZ NOT NULL DEFAULT now()
 );

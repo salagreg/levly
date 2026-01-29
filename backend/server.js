@@ -3,6 +3,7 @@ require("dotenv").config();
 const cors = require('cors');
 const express = require("express");
 
+const authRoutes = require('./src/routes/authRoutes');
 
 const app = express();
 
@@ -10,6 +11,7 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/api/auth', authRoutes);
 
 
 const port = process.env.PORT || 3000;

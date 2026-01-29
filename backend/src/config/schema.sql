@@ -5,6 +5,7 @@ CREATE TABLE utilisateur (
   date_de_naissance DATE NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
   mot_de_passe VARCHAR(255) NOT NULL,
+  compte_actif BOOLEAN NOT NULL DEFAULT true,
   date_creation TIMESTAMPTZ NOT NULL DEFAULT now(), 
   date_maj TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -19,7 +20,7 @@ CREATE TABLE pilier (
   pilier_actif BOOLEAN NOT NULL,
 
   -- Contraintes de clés étrangères
-  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id)
+  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
 );
 
 
@@ -33,8 +34,8 @@ CREATE TABLE activite (
   activite_validee BOOLEAN NOT NULL,
 
   -- Contraintes de clés étrangères
-  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id),
-  FOREIGN KEY (id_pilier) REFERENCES pilier(id_pilier)
+  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE,
+  FOREIGN KEY (id_pilier) REFERENCES pilier(id_pilier) ON DELETE CASCADE
 );
 
 
@@ -44,7 +45,7 @@ CREATE TABLE serie (
   serie_actuelle INT NOT NULL,
 
   -- Contraintes de clés étrangères
-  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id)
+  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
 );
 
 
@@ -55,7 +56,7 @@ CREATE TABLE jeton (
   origine_jeton VARCHAR(100),
 
   -- Contraintes de clés étrangères
-  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id)
+  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
 );
 
 

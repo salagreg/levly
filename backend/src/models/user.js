@@ -7,7 +7,7 @@ const findUserByEmail = async (email) => {
 };
 
 const createUser = async (userData) => {
-  const { prenom, nom, email, mot_de_passe, date_de_naissance } = userData;
+  const { prenom, nom, email, date_de_naissance, mot_de_passe } = userData;
   
   const query = `
     INSERT INTO utilisateur (prenom, nom, date_de_naissance, email, mot_de_passe)

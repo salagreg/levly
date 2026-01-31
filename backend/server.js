@@ -1,7 +1,7 @@
 // Démarre le serveur web Express et gère les routes API.
 require("dotenv").config();
 const cors = require('cors');
-const express = require("express");
+const express = require('express');
 
 const authRoutes = require('./src/routes/authRoutes');
 

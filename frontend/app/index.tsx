@@ -1,5 +1,5 @@
-import TestScreen from '../src/screens/TestScreen';
+import AuthScreen from "../src/screens/AuthScreen";
 
 export default function Index() {
-  return <TestScreen />;
+  return <AuthScreen />;
 }

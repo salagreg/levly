@@ -1,3 +1,6 @@
+// ===============================================================
+// Input reutilisable sous forme de composant
+// ===============================================================
 import React from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
 

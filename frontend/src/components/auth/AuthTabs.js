@@ -1,3 +1,6 @@
+// ===============================================================
+// Affiche les onglets de connexion et d'inscription
+// ===============================================================
 import React from "react";
 import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 

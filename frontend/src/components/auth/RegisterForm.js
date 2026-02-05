@@ -1,3 +1,6 @@
+// ===============================================================
+// Formulaire d'inscription pour les nouveaux utilisateurs
+// ===============================================================
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Alert } from "react-native";
 import CustomInput from "../common/CustomInput";

@@ -1,3 +1,6 @@
+// ===============================================================
+// Composant bouton personnalisable avec différents styles et états
+// ===============================================================
 import React from "react";
 import {
   TouchableOpacity,

@@ -1,3 +1,6 @@
+// ===============================================================
+// Coordonne les onglets et les formulaires d'authentification
+// ===============================================================
 import React, { useState } from "react";
 import {
   View,

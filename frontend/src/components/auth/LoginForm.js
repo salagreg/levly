@@ -1,3 +1,6 @@
+// ===============================================================
+// Formulaire de connexion pour les utilisateurs existants
+// ===============================================================
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Alert } from "react-native";
 import CustomInput from "../common/CustomInput";

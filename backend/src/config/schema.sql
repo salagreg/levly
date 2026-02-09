@@ -16,8 +16,10 @@ CREATE TABLE pilier (
   id_utilisateur INT NOT NULL,
   nom_pilier VARCHAR(100) NOT NULL,
   duree_objectif_minutes INT NOT NULL,
-  source_externe VARCHAR(50),
-  pilier_actif BOOLEAN NOT NULL,
+  source_externe VARCHAR(50) NOT NULL,
+  pilier_actif BOOLEAN NOT NULL DEFAULT true,
+  date_creation TIMESTAMPTZ NOT NULL DEFAULT now(),
+  date_maj TIMESTAMPTZ NOT NULL DEFAULT now(),
 
   -- Contraintes de clés étrangères
   FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE

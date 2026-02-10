@@ -18,6 +18,12 @@ CREATE TABLE pilier (
   duree_objectif_minutes INT NOT NULL,
   source_externe VARCHAR(50) NOT NULL,
   pilier_actif BOOLEAN NOT NULL DEFAULT true,
+
+  -- Colonnes OAuth pour les intégrations externes
+  access_token VARCHAR(255),
+  refresh_token VARCHAR(255),
+  token_expires_at BIGINT,
+
   date_creation TIMESTAMPTZ NOT NULL DEFAULT now(),
   date_maj TIMESTAMPTZ NOT NULL DEFAULT now(),
 

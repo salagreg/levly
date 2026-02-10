@@ -9,6 +9,7 @@ const path = require("path");
 
 const authRoutes = require("./src/routes/authRoutes");
 const pilierRoutes = require("./src/routes/pilierRoutes");
+const stravaRoutes = require("./src/routes/stravaRoutes");
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use("/assets", express.static(path.join(__dirname, "src/public/assets")));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/piliers", pilierRoutes);
+app.use("/api/strava", stravaRoutes);
 
 const port = process.env.PORT || 3000;
 

@@ -4,6 +4,7 @@
 
 const Pilier = require("../models/pilier");
 const { PILIERS } = require("../constants/piliers");
+const StravaAPI = require("../integrations/stravaAPI");
 
 // ===============================================================
 // Contient la logique métier pour gérer les piliers
@@ -31,9 +32,7 @@ class PilierService {
     }
 
     if (pilier.id_utilisateur !== userId) {
-      throw new Error(
-        "Non autorisé"
-      );
+      throw new Error("Non autorisé");
     }
 
     return pilier;
@@ -82,27 +81,37 @@ class PilierService {
   static async disconnectApp(pilierId, userId) {
     const pilier = await this.verifyOwnership(pilierId, userId);
 
-    await this.revokeOAuthAccess(pilier.source_externe, userId);
+    // Révoquer l'accès OAuth
+    await this.revokeOAuthAccess(pilier.source_externe, pilier.access_token);
 
     return await Pilier.delete(pilierId);
   }
 
   // Révoquer l'accès OAuth pour une source externe
-  static async revokeOAuthAccess(source, userId) {
+  static async revokeOAuthAccess(source, accessToken) {
     const appName = this.getAppDisplayName(source);
-    console.log(`[TODO] Révocation OAuth pour ${appName} - User ${userId}`);
 
-    // À implémenter lors de l'intégration des APIs
-    // switch (source) {
-    //   case 'strava':
-    //     await StravaAPI.revokeAccess(userId);
-    //     break;
-    //   case 'spotify':
-    //     await SpotifyAPI.revokeAccess(userId);
-    //     break;
-    //   default:
-    //     throw new Error(`Source OAuth non supportée : ${appName}`);
-    // }
+    try {
+      switch (source) {
+        case "strava":
+          if (accessToken) {
+            await StravaAPI.revokeAccess(accessToken);
+            console.log(`✅ Token Strava révoqué`);
+          }
+          break;
+
+        case "spotify":
+          // TODO: Implémenter lors de l'intégration Spotify
+          console.log(`[TODO] Révocation OAuth pour ${appName}`);
+          break;
+
+        default:
+          console.log(`[INFO] Pas de révocation OAuth pour ${appName}`);
+      }
+    } catch (error) {
+      console.error(`Erreur révocation OAuth ${appName}:`, error.message);
+      // On ne throw pas car la suppression locale doit continuer
+    }
   }
 }
 

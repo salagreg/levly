@@ -16,6 +16,9 @@ class Pilier {
       source_externe,
       pilier_actif = true,
       id_utilisateur,
+      access_token = null,
+      refresh_token = null,
+      token_expires_at = null,
     } = pilierData;
 
     const query = `
@@ -24,20 +27,26 @@ class Pilier {
         duree_objectif_minutes, 
         source_externe, 
         pilier_actif, 
-        id_utilisateur
+        id_utilisateur,
+        access_token,           
+        refresh_token,          
+        token_expires_at        
       ) 
-      VALUES ($1, $2, $3, $4, $5) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
       RETURNING *
     `;
 
-    const values = [
+    const result = await pool.query(query, [
       nom_pilier,
       duree_objectif_minutes,
       source_externe,
       pilier_actif,
       id_utilisateur,
-    ];
-    const result = await pool.query(query, values);
+      access_token,
+      refresh_token,
+      token_expires_at,
+    ]);
+
     return result.rows[0];
   }
 

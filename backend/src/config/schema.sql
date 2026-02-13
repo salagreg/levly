@@ -10,19 +10,29 @@ CREATE TABLE utilisateur (
   date_maj TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-
 CREATE TABLE pilier (
   id_pilier SERIAL PRIMARY KEY NOT NULL,
   id_utilisateur INT NOT NULL,
   nom_pilier VARCHAR(100) NOT NULL,
-  duree_objectif_minutes INT NOT NULL,
-  source_externe VARCHAR(50),
-  pilier_actif BOOLEAN NOT NULL,
+  source_externe VARCHAR(50) NOT NULL,
+  type_validation VARCHAR(20) NOT NULL DEFAULT 'duree',
+  
+  -- Configuration flexible en JSON
+  objectif_config JSONB NOT NULL,
+  
+  pilier_actif BOOLEAN NOT NULL DEFAULT true,
+
+  -- Colonnes OAuth pour les intégrations externes
+  access_token TEXT,
+  refresh_token TEXT,
+  token_expires_at BIGINT,
+
+  date_creation TIMESTAMPTZ NOT NULL DEFAULT now(),
+  date_maj TIMESTAMPTZ NOT NULL DEFAULT now(),
 
   -- Contraintes de clés étrangères
   FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
 );
-
 
 CREATE TABLE activite (
   id_activite SERIAL PRIMARY KEY NOT NULL,
@@ -38,7 +48,6 @@ CREATE TABLE activite (
   FOREIGN KEY (id_pilier) REFERENCES pilier(id_pilier) ON DELETE CASCADE
 );
 
-
 CREATE TABLE serie (
   id_serie SERIAL PRIMARY KEY NOT NULL,
   id_utilisateur INT NOT NULL,
@@ -47,7 +56,6 @@ CREATE TABLE serie (
   -- Contraintes de clés étrangères
   FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
 );
-
 
 CREATE TABLE jeton (
   id_jeton SERIAL PRIMARY KEY NOT NULL,
@@ -58,7 +66,6 @@ CREATE TABLE jeton (
   -- Contraintes de clés étrangères
   FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
 );
-
 
 CREATE TABLE administrateur (
   id_administrateur SERIAL PRIMARY KEY NOT NULL,

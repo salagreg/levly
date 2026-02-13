@@ -101,8 +101,11 @@ class PilierService {
           break;
 
         case "spotify":
-          // TODO: Implémenter lors de l'intégration Spotify
-          console.log(`[TODO] Révocation OAuth pour ${appName}`);
+          // Spotify : pas de révocation OAuth officielle
+          // Le token expire automatiquement
+          console.log(
+            `✅ Connexion Spotify supprimée (token invalide après déconnexion)`
+          );
           break;
 
         default:

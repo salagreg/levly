@@ -1,7 +1,6 @@
 // =================================================================
 // Module pour gérer l'intégration avec l'API Strava (OAuth, récupération d'activités, etc.)
 // =================================================================
-
 const axios = require("axios");
 
 class StravaAPI {

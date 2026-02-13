@@ -177,7 +177,8 @@ class StravaController {
             id_utilisateur: userId,
             nom_pilier: "Sport",
             source_externe: "strava",
-            duree_objectif_minutes: 30,
+            type_validation: "duree",
+            objectif_config: { duree_minutes: 30 },
             pilier_actif: true,
             access_token: tokens.access_token,
             refresh_token: tokens.refresh_token,
@@ -307,7 +308,7 @@ class StravaController {
         accessToken = newTokens.access_token;
       }
 
-      // 🆕 Calculer le début de la journée (00:00:00 aujourd'hui)
+      // Calculer le début de la journée
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
       const afterTimestamp = Math.floor(startOfDay.getTime() / 1000);

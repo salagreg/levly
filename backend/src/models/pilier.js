@@ -12,39 +12,42 @@ class Pilier {
   static async create(pilierData) {
     const {
       nom_pilier,
-      duree_objectif_minutes,
       source_externe,
       pilier_actif = true,
       id_utilisateur,
       access_token = null,
       refresh_token = null,
       token_expires_at = null,
+      type_validation = "duree",
+      objectif_config = {},
     } = pilierData;
 
     const query = `
       INSERT INTO pilier (
         nom_pilier, 
-        duree_objectif_minutes, 
         source_externe, 
         pilier_actif, 
         id_utilisateur,
-        access_token,           
-        refresh_token,          
-        token_expires_at        
+        access_token,
+        refresh_token,
+        token_expires_at,
+        type_validation,
+        objectif_config
       ) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
       RETURNING *
     `;
 
     const result = await pool.query(query, [
       nom_pilier,
-      duree_objectif_minutes,
       source_externe,
       pilier_actif,
       id_utilisateur,
       access_token,
       refresh_token,
       token_expires_at,
+      type_validation,
+      JSON.stringify(objectif_config),
     ]);
 
     return result.rows[0];
@@ -54,14 +57,50 @@ class Pilier {
   static async findByUserId(userId) {
     const query = "SELECT * FROM pilier WHERE id_utilisateur = $1";
     const result = await pool.query(query, [userId]);
-    return result.rows;
+
+    // Parser le JSON pour chaque pilier
+    return result.rows.map((pilier) => ({
+      ...pilier,
+      objectif_config:
+        typeof pilier.objectif_config === "string"
+          ? JSON.parse(pilier.objectif_config)
+          : pilier.objectif_config,
+    }));
   }
 
   // Récupérer un pilier par son ID
   static async findById(pilierId) {
     const query = "SELECT * FROM pilier WHERE id_pilier = $1";
     const result = await pool.query(query, [pilierId]);
-    return result.rows[0] || null;
+
+    if (!result.rows[0]) return null;
+
+    const pilier = result.rows[0];
+    return {
+      ...pilier,
+      objectif_config:
+        typeof pilier.objectif_config === "string"
+          ? JSON.parse(pilier.objectif_config)
+          : pilier.objectif_config,
+    };
+  }
+
+  // Vérifier si une source externe existe déjà pour cet utilisateur
+  static async findByUserAndSource(userId, sourceExterne) {
+    const query =
+      "SELECT * FROM pilier WHERE id_utilisateur = $1 AND source_externe = $2";
+    const result = await pool.query(query, [userId, sourceExterne]);
+
+    if (!result.rows[0]) return null;
+
+    const pilier = result.rows[0];
+    return {
+      ...pilier,
+      objectif_config:
+        typeof pilier.objectif_config === "string"
+          ? JSON.parse(pilier.objectif_config)
+          : pilier.objectif_config,
+    };
   }
 
   // Mettre à jour un pilier
@@ -72,6 +111,14 @@ class Pilier {
 
     // Mise à jour automatique de date_maj
     updates.date_maj = new Date();
+
+    // Si objectif_config est un objet, le convertir en JSON
+    if (
+      updates.objectif_config &&
+      typeof updates.objectif_config === "object"
+    ) {
+      updates.objectif_config = JSON.stringify(updates.objectif_config);
+    }
 
     for (const [key, value] of Object.entries(updates)) {
       fields.push(`${key} = $${index}`);
@@ -92,7 +139,17 @@ class Pilier {
     values.push(pilierId);
 
     const result = await pool.query(query, values);
-    return result.rows[0] || null;
+
+    if (!result.rows[0]) return null;
+
+    const pilier = result.rows[0];
+    return {
+      ...pilier,
+      objectif_config:
+        typeof pilier.objectif_config === "string"
+          ? JSON.parse(pilier.objectif_config)
+          : pilier.objectif_config,
+    };
   }
 
   // Supprimer un pilier
@@ -108,14 +165,6 @@ class Pilier {
       "SELECT COUNT(*) FROM pilier WHERE id_utilisateur = $1 AND pilier_actif = true";
     const result = await pool.query(query, [userId]);
     return parseInt(result.rows[0].count, 10);
-  }
-
-  // Vérifier si une source externe existe déjà pour cet utilisateur
-  static async findByUserAndSource(userId, sourceExterne) {
-    const query =
-      "SELECT * FROM pilier WHERE id_utilisateur = $1 AND source_externe = $2";
-    const result = await pool.query(query, [userId, sourceExterne]);
-    return result.rows[0] || null;
   }
 }
 

@@ -317,7 +317,7 @@ class StravaController {
       console.log("  Après:", startOfDay.toISOString());
 
       // Récupérer les activités APRÈS le début de la journée
-      const activities = await StravaAPI.getActivities(
+      const activities = await StravaAPI.getTodayActivities(
         accessToken,
         afterTimestamp
       );

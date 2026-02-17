@@ -68,16 +68,12 @@ class StravaAPI {
     }
   }
 
-  // Récupérer les activités de l'utilisateur
-  static async getActivities(accessToken, after = null) {
+  static async getTodayActivities(accessToken) {
     try {
-      const params = {
-        per_page: 30, // Nombre d'activités à récupérer
-      };
-
-      if (after) {
-        params.after = after; // Récupérer seulement après cette date
-      }
+      // Calculer minuit aujourd'hui
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const afterTimestamp = Math.floor(startOfDay.getTime() / 1000);
 
       const response = await axios.get(
         "https://www.strava.com/api/v3/athlete/activities",
@@ -85,16 +81,16 @@ class StravaAPI {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-          params: params,
+          params: {
+            after: afterTimestamp, // Depuis 0h00 aujourd'hui
+            per_page: 30,
+          },
         }
       );
 
       return response.data;
     } catch (error) {
-      console.error(
-        "Erreur récupération activités Strava:",
-        error.response?.data || error.message
-      );
+      console.error("Erreur Strava:", error.response?.data || error.message);
       throw new Error("Impossible de récupérer les activités Strava");
     }
   }

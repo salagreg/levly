@@ -39,9 +39,10 @@ CREATE TABLE activite (
   id_utilisateur INT NOT NULL,
   id_pilier INT NOT NULL,
   date_activite DATE NOT NULL,
-  duree_minutes INT NOT NULL,
+  duree_minutes INT,
   source_externe VARCHAR(50),
   activite_validee BOOLEAN NOT NULL,
+  nombre_episodes INT,
 
   -- Contraintes de clés étrangères
   FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE,
@@ -50,8 +51,9 @@ CREATE TABLE activite (
 
 CREATE TABLE serie (
   id_serie SERIAL PRIMARY KEY NOT NULL,
-  id_utilisateur INT NOT NULL,
+  id_utilisateur INT UNIQUE NOT NULL,
   serie_actuelle INT NOT NULL,
+  derniere_validation DATE;
 
   -- Contraintes de clés étrangères
   FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
@@ -59,10 +61,11 @@ CREATE TABLE serie (
 
 CREATE TABLE jeton (
   id_jeton SERIAL PRIMARY KEY NOT NULL,
-  id_utilisateur INT NOT NULL UNIQUE,
-  nombre_jeton INT,
-  origine_jeton VARCHAR(100),
-
+  id_utilisateur INT NOT NULL,
+  montant_jeton INT NOT NULL,
+  origine_jeton VARCHAR(100) NOT NULL,
+  date_creation TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  
   -- Contraintes de clés étrangères
   FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
 );

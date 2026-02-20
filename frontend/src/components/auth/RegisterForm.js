@@ -3,12 +3,13 @@
 // ===============================================================
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Alert } from "react-native";
+import { router } from "expo-router";
+import { register } from "../../services/authService";
 import CustomInput from "../common/CustomInput";
 import CustomButton from "../common/CustomButton";
-import authService from "../../services/authService";
 import validation from "../../utils/validation";
 
-const RegisterForm = ({ navigation }) => {
+const RegisterForm = () => {
   const [formData, setFormData] = useState({
     prenom: "",
     nom: "",
@@ -52,10 +53,10 @@ const RegisterForm = ({ navigation }) => {
         mot_de_passe: formData.mot_de_passe,
       };
 
-      const response = await authService.register(userData);
+      const response = await register(userData);
 
       Alert.alert("Succès", "Inscription réussie !");
-      navigation.navigate("Dashboard");
+      router.replace("/sync");
     } catch (error) {
       Alert.alert("Erreur", error);
     } finally {

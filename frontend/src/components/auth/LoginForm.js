@@ -3,12 +3,13 @@
 // ===============================================================
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Alert } from "react-native";
+import { router } from "expo-router";
+import { login } from "../../services/authService";
 import CustomInput from "../common/CustomInput";
 import CustomButton from "../common/CustomButton";
-import authService from "../../services/authService";
 import validation from "../../utils/validation";
 
-const LoginForm = ({ navigation }) => {
+const LoginForm = () => {
   const [formData, setFormData] = useState({
     email: "",
     mot_de_passe: "",
@@ -41,15 +42,16 @@ const LoginForm = ({ navigation }) => {
     try {
       setLoading(true);
 
-      const response = await authService.login(
-        formData.email,
-        formData.mot_de_passe
-      );
+      // ✅ Appel correct avec formData
+      const response = await login(formData.email, formData.mot_de_passe);
 
       Alert.alert("Succès", "Connexion réussie !");
-      navigation.navigate("Dashboard");
+      router.replace("/(tabs)");
     } catch (error) {
-      Alert.alert("Erreur", error);
+      Alert.alert(
+        "Erreur",
+        error.response?.data?.message || "Erreur lors de la connexion"
+      );
     } finally {
       setLoading(false);
     }

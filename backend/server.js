@@ -12,6 +12,7 @@ const pilierRoutes = require("./src/routes/pilierRoutes");
 const stravaRoutes = require("./src/routes/stravaRoutes");
 const spotifyRoutes = require("./src/routes/spotifyRoutes");
 const validationRoutes = require("./src/routes/validationRoutes");
+const dashboardRoutes = require("./src/routes/dashboardRoutes");
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use("/api/piliers", pilierRoutes);
 app.use("/api/strava", stravaRoutes);
 app.use("/api/spotify", spotifyRoutes);
 app.use("/api/validation", validationRoutes);
+app.use("/api", dashboardRoutes);
 
 const port = process.env.PORT || 3000;
 

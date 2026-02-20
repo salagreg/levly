@@ -12,15 +12,24 @@ TRUNCATE TABLE utilisateur CASCADE;
 TRUNCATE TABLE administrateur CASCADE;
 
 -- ============================================
+-- RESET DES SÉQUENCES (pour avoir id=1)
+-- ============================================
+ALTER SEQUENCE utilisateur_id_seq RESTART WITH 1;
+ALTER SEQUENCE pilier_id_pilier_seq RESTART WITH 1;
+ALTER SEQUENCE jeton_id_jeton_seq RESTART WITH 1;
+ALTER SEQUENCE serie_id_serie_seq RESTART WITH 1;
+ALTER SEQUENCE activite_id_activite_seq RESTART WITH 1;
+ALTER SEQUENCE administrateur_id_administrateur_seq RESTART WITH 1;
+
+-- ============================================
 -- UTILISATEURS DE TEST
 -- ============================================
 
 -- Utilisateur 1 : Grégory (compte actif)
 -- Mot de passe : password123 (hashé avec bcrypt)
--- Hash bcrypt pour "password123" : $2b$10$YourHashHere
 INSERT INTO utilisateur (prenom, nom, date_de_naissance, email, mot_de_passe, compte_actif)
 VALUES 
-  ('Grégory', 'Sala', '1995-05-15', 'gregory@levly.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', true);
+  ('Grégory', 'Sala', '1995-05-15', 'gregory@levly.com', '$2b$10$8JfUmbwVmT9vEgdIzpUA0.MlgxTcHN8fgpqNcacVE20o/0xjC079q', true);
 
 -- Utilisateur 2 : Test User (compte actif)
 -- Mot de passe : test123
@@ -48,10 +57,10 @@ VALUES
 -- PILIERS DE TEST (pour Grégory uniquement)
 -- ============================================
 
-INSERT INTO pilier (id_utilisateur, nom_pilier, duree_objectif_minutes, source_externe, pilier_actif)
+INSERT INTO pilier (id_utilisateur, nom_pilier, source_externe, pilier_actif, objectif_config)
 VALUES 
-  (1, 'Sport', 30, 'Strava', true),
-  (1, 'Culture & Développement', 20, 'Spotify', true);
+  (1, 'Sport', 'strava', true, '{"type": "duree", "objectif_minutes": 30}'::jsonb),
+  (1, 'Culture & Développement', 'spotify', true, '{"type": "duree", "objectif_minutes": 20}'::jsonb);
 
 -- ============================================
 -- SÉRIE DE TEST (pour Grégory)
@@ -59,15 +68,15 @@ VALUES
 
 INSERT INTO serie (id_utilisateur, serie_actuelle)
 VALUES 
-  (1, 0);
+  (1, 60);
 
 -- ============================================
 -- JETONS DE TEST (pour Grégory)
 -- ============================================
 
-INSERT INTO jeton (id_utilisateur, nombre_jeton, origine_jeton)
+INSERT INTO jeton (id_utilisateur, montant_jeton, origine_jeton)
 VALUES 
-  (1, 0, 'inscription');
+  (1, 1240, 'inscription');
 
 -- ============================================
 -- VÉRIFICATION
@@ -80,7 +89,13 @@ SELECT 'Administrateurs créés :' AS info;
 SELECT id_administrateur, email, is_admin FROM administrateur;
 
 SELECT 'Piliers créés :' AS info;
-SELECT id_pilier, nom_pilier, duree_objectif_minutes FROM pilier;
+SELECT id_pilier, nom_pilier, objectif_config FROM pilier;
+
+SELECT 'Jetons créés :' AS info;
+SELECT id_jeton, id_utilisateur, montant_jeton FROM jeton;
+
+SELECT 'Séries créées :' AS info;
+SELECT id_serie, id_utilisateur, serie_actuelle FROM serie;
 
 SELECT '✅ Seed terminé avec succès !' AS info;
 
@@ -88,11 +103,7 @@ SELECT '✅ Seed terminé avec succès !' AS info;
 -- NOTES IMPORTANTES
 -- ============================================
 -- 
--- 📝 Tous les mots de passe de test sont : "password123"
--- 
--- ⚠️ Le hash bcrypt utilisé ici est un exemple générique.
--- Lors du développement réel, ces mots de passe seront hashés 
--- par l'API lors de l'inscription.
+-- 📝 Mot de passe pour Grégory : "password123"
 -- 
 -- 🔐 Pour te connecter en dev :
 -- Email : gregory@levly.com

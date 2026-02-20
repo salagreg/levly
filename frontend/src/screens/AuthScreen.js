@@ -10,12 +10,13 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import AuthTabs from "../components/auth/AuthTabs";
 import RegisterForm from "../components/auth/RegisterForm";
 import LoginForm from "../components/auth/LoginForm";
 import BackButton from "../components/common/BackButton";
 
-const AuthScreen = ({ navigation }) => {
+const AuthScreen = () => {
   const [activeTab, setActiveTab] = useState("connexion");
 
   return (
@@ -25,7 +26,7 @@ const AuthScreen = ({ navigation }) => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View style={styles.header}>
-          <BackButton onPress={() => navigation.goBack()} />
+          <BackButton onPress={() => router.back()} />
         </View>
 
         <View style={styles.content}>
@@ -37,9 +38,9 @@ const AuthScreen = ({ navigation }) => {
             contentContainerStyle={styles.scrollContent}
           >
             {activeTab === "inscription" ? (
-              <RegisterForm navigation={navigation} />
+              <RegisterForm />
             ) : (
-              <LoginForm navigation={navigation} />
+              <LoginForm />
             )}
           </ScrollView>
         </View>

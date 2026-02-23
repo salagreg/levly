@@ -1,62 +1,61 @@
 // ================================================================
-// RewardsScreen - Écran des récompenses et badges
+// Écran des récompenses (badges)
 // ================================================================
 
-import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  Alert,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { getBadges } from "../services/rewardsService";
 
-export default function RewardsScreen() {
-  // Données des badges (mockées pour le MVP)
-  const badges = [
-    {
-      id: 1,
-      title: "Première victoire",
-      description: "Complétez votre première routine",
-      icon: "trophy",
-      unlocked: true,
-      color: "#F59E0B",
-    },
-    {
-      id: 2,
-      title: "Série de 7 jours",
-      description: "Maintenez une série de 7 jours consécutifs",
-      icon: "flame",
-      unlocked: true,
-      color: "#EF4444",
-    },
-    {
-      id: 3,
-      title: "Expert du temps",
-      description: "Accumulez 100 heures de routines",
-      icon: "time",
-      unlocked: false,
-      color: "#8B5CF6",
-    },
-    {
-      id: 4,
-      title: "Marathonien",
-      description: "Maintenez une série de 30 jours consécutifs",
-      icon: "ribbon",
-      unlocked: false,
-      color: "#10B981",
-    },
-  ];
+const RewardsScreen = () => {
+  const [badges, setBadges] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadBadges();
+  }, []);
+
+  const loadBadges = async () => {
+    try {
+      setLoading(true);
+      const data = await getBadges();
+      setBadges(data.badges);
+    } catch (error) {
+      console.error("Erreur chargement badges:", error);
+      Alert.alert("Erreur", "Impossible de charger les badges");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.loadingText}>Chargement...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <ScrollView contentContainerStyle={styles.container}>
-        {/* Titre de la page */}
-        <Text style={styles.title}>Récompenses</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Récompenses</Text>
+          <Text style={styles.subtitle}>
+            Débloquez des badges en atteignant vos objectifs !
+          </Text>
+        </View>
 
-        {/* Sous-titre */}
-        <Text style={styles.subtitle}>
-          Débloquez des badges en atteignant vos objectifs
-        </Text>
-
-        {/* Liste des badges */}
-        <View style={styles.badgesList}>
+        {/* Badges */}
+        <View style={styles.badgesContainer}>
           {badges.map((badge) => (
             <BadgeCard key={badge.id} badge={badge} />
           ))}
@@ -64,24 +63,12 @@ export default function RewardsScreen() {
       </ScrollView>
     </SafeAreaView>
   );
-}
+};
 
 // ================================================================
 // Composant BadgeCard
 // ================================================================
-
-interface BadgeCardProps {
-  badge: {
-    id: number;
-    title: string;
-    description: string;
-    icon: string;
-    unlocked: boolean;
-    color: string;
-  };
-}
-
-function BadgeCard({ badge }: BadgeCardProps) {
+const BadgeCard = ({ badge }) => {
   return (
     <View
       style={[
@@ -89,148 +76,126 @@ function BadgeCard({ badge }: BadgeCardProps) {
         badge.unlocked ? styles.badgeUnlocked : styles.badgeLocked,
       ]}
     >
-      {/* Icône du badge */}
-      <View
-        style={[
-          styles.badgeIcon,
-          { backgroundColor: badge.unlocked ? badge.color + "20" : "#F3F4F6" },
-        ]}
-      >
-        <Ionicons
-          name={badge.icon as any}
-          size={48}
-          color={badge.unlocked ? badge.color : "#D1D5DB"}
-        />
+      {/* Badge Icon */}
+      <View style={[styles.badgeIcon, { opacity: badge.unlocked ? 1 : 0.3 }]}>
+        <Text style={styles.badgeEmoji}>{badge.icon}</Text>
       </View>
 
-      {/* Contenu */}
-      <View style={styles.badgeContent}>
+      {/* Badge Info */}
+      <View style={styles.badgeInfo}>
         <Text
           style={[
-            styles.badgeTitle,
-            !badge.unlocked && styles.badgeTitleLocked,
+            styles.badgeName,
+            { color: badge.unlocked ? "#1E293B" : "#94A3B8" },
           ]}
         >
-          {badge.title}
+          {badge.name}
         </Text>
         <Text
           style={[
             styles.badgeDescription,
-            !badge.unlocked && styles.badgeDescriptionLocked,
+            { color: badge.unlocked ? "#64748B" : "#CBD5E1" },
           ]}
         >
           {badge.description}
         </Text>
-
-        {/* Badge débloqué */}
-        {badge.unlocked && (
-          <View style={styles.unlockedBadge}>
-            <Ionicons name="trophy" size={14} color="#F59E0B" />
-            <Text style={styles.unlockedText}>Débloqué</Text>
-          </View>
-        )}
       </View>
 
-      {/* Cadenas si bloqué */}
-      {!badge.unlocked && (
-        <View style={styles.lockIcon}>
-          <Ionicons name="lock-closed" size={24} color="#9CA3AF" />
-        </View>
-      )}
+      {/* Status */}
+      <View style={styles.badgeStatus}>
+        {badge.unlocked ? (
+          <View style={styles.unlockedBadge}>
+            <Text style={styles.unlockedText}>Débloqué</Text>
+          </View>
+        ) : (
+          <Ionicons name="lock-closed" size={24} color="#CBD5E1" />
+        )}
+      </View>
     </View>
   );
-}
-
-// ================================================================
-// Styles
-// ================================================================
+};
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
-  },
   container: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+  loadingText: {
+    textAlign: "center",
+    marginTop: 50,
+    fontSize: 16,
+    color: "#64748B",
+  },
+  header: {
     padding: 20,
-    paddingBottom: 100,
+    paddingTop: 10,
   },
   title: {
     fontSize: 28,
-    fontWeight: "700",
-    color: "#1B3A6B",
+    fontWeight: "bold",
+    color: "#1E293B",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#6B7280",
-    marginBottom: 24,
+    color: "#64748B",
   },
-  badgesList: {
-    gap: 16,
+  badgesContainer: {
+    padding: 20,
+    paddingTop: 10,
   },
   badgeCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
     padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
   },
   badgeUnlocked: {
-    borderWidth: 2,
-    borderColor: "#F59E0B",
+    borderColor: "#F97316",
   },
   badgeLocked: {
-    opacity: 0.6,
+    borderColor: "#E2E8F0",
   },
   badgeIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#FFF7ED",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
   },
-  badgeContent: {
+  badgeEmoji: {
+    fontSize: 32,
+  },
+  badgeInfo: {
     flex: 1,
   },
-  badgeTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1B3A6B",
+  badgeName: {
+    fontSize: 16,
+    fontWeight: "600",
     marginBottom: 4,
-  },
-  badgeTitleLocked: {
-    color: "#9CA3AF",
   },
   badgeDescription: {
     fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 8,
   },
-  badgeDescriptionLocked: {
-    color: "#D1D5DB",
-  },
-  unlockedBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FEF3C7",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-  },
-  unlockedText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#F59E0B",
-    marginLeft: 4,
-  },
-  lockIcon: {
+  badgeStatus: {
     marginLeft: 12,
   },
+  unlockedBadge: {
+    backgroundColor: "#F97316",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  unlockedText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
+  },
 });
+
+export default RewardsScreen;

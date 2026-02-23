@@ -13,6 +13,9 @@ const stravaRoutes = require("./src/routes/stravaRoutes");
 const spotifyRoutes = require("./src/routes/spotifyRoutes");
 const validationRoutes = require("./src/routes/validationRoutes");
 const dashboardRoutes = require("./src/routes/dashboardRoutes");
+const rewardsRoutes = require("./src/routes/rewardsRoutes");
+const statsRoutes = require("./src/routes/statsRoutes");
+const settingsRoutes = require("./src/routes/settingsRoutes");
 
 const app = express();
 
@@ -39,6 +42,9 @@ app.use("/api/strava", stravaRoutes);
 app.use("/api/spotify", spotifyRoutes);
 app.use("/api/validation", validationRoutes);
 app.use("/api", dashboardRoutes);
+app.use("/api/rewards", rewardsRoutes);
+app.use("/api/stats", statsRoutes);
+app.use("/api/settings", settingsRoutes);
 
 const port = process.env.PORT || 3000;
 

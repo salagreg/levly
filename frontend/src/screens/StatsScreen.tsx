@@ -1,74 +1,69 @@
 // ================================================================
-// StatsScreen - Écran des statistiques
+// Écran des statistiques
 // ================================================================
 
-import React from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  Alert,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { getStats } from "../services/statsService";
 
-const { width, height } = Dimensions.get("window");
+const StatsScreen = () => {
+  const [weekData, setWeekData] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-export default function StatsScreen() {
-  // Données mockées de la semaine
-  const weekData = [
-    { day: "Lun", date: 30, validated: true },
-    { day: "Mar", date: 31, validated: true },
-    { day: "Mer", date: 1, validated: false },
-    { day: "Jeu", date: 2, validated: true },
-    { day: "Ven", date: 3, validated: true },
-    { day: "Sam", date: 4, validated: false },
-    { day: "Dim", date: 5, validated: false },
-  ];
+  useEffect(() => {
+    loadStats();
+  }, []);
 
-  // Stats mockées
-  const stats = [
-    {
-      icon: "checkmark-circle",
-      iconColor: "#10B981",
-      label: "Routines complétées",
-      value: "15",
-    },
-    {
-      icon: "time",
-      iconColor: "#6B7280",
-      label: "Temps total",
-      value: "12h 30m",
-    },
-    {
-      icon: "flame",
-      iconColor: "#EF4444",
-      label: "Série actuelle",
-      value: "60 jours",
-    },
-    {
-      icon: "star",
-      iconColor: "#5B7EBD",
-      label: "Meilleure série",
-      value: "72 jours",
-    },
-  ];
+  const loadStats = async () => {
+    try {
+      setLoading(true);
+      const data = await getStats();
+      setWeekData(data.weekData);
+      setStats(data.stats);
+    } catch (error) {
+      console.error("Erreur chargement stats:", error);
+      Alert.alert("Erreur", "Impossible de charger les statistiques");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.loadingText}>Chargement...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <View style={styles.container}>
-        {/* Titre */}
-        <Text style={styles.title}>Statistiques</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Statistiques</Text>
+          <Text style={styles.subtitle}>
+            Suivez vos performances hebdomadaires
+          </Text>
+        </View>
 
-        {/* Sous-titre */}
-        <Text style={styles.subtitle}>
-          Suivez vos performances hebdomadaires
-        </Text>
-
-        {/* Cette semaine */}
+        {/* Carte Semaine */}
         <View style={styles.weekCard}>
           <Text style={styles.weekTitle}>Cette semaine</Text>
 
-          {/* Graphique personnalisé */}
+          {/* Graphique */}
           <View style={styles.weekGraph}>
             {weekData.map((item, index) => (
               <View key={index} style={styles.dayContainer}>
-                {/* Box jour */}
                 <View
                   style={[
                     styles.dayBox,
@@ -80,154 +75,166 @@ export default function StatsScreen() {
                   <Ionicons
                     name={item.validated ? "checkmark" : "close"}
                     size={20}
-                    color={item.validated ? "#10B981" : "#EF4444"}
+                    color="#FFFFFF"
                   />
                 </View>
-
-                {/* Jour */}
                 <Text style={styles.dayLabel}>{item.day}</Text>
-
-                {/* Date */}
                 <Text style={styles.dateLabel}>{item.date}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Stats grid */}
+        {/* Cartes Stats */}
         <View style={styles.statsGrid}>
-          {stats.map((stat, index) => (
-            <View key={index} style={styles.statCard}>
-              <View
-                style={[
-                  styles.statIcon,
-                  { backgroundColor: stat.iconColor + "20" },
-                ]}
-              >
-                <Ionicons
-                  name={stat.icon as any}
-                  size={24}
-                  color={stat.iconColor}
-                />
-              </View>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-              <Text style={styles.statValue}>{stat.value}</Text>
-            </View>
-          ))}
+          <StatCard
+            icon="checkbox-outline"
+            iconColor="#10B981"
+            value={stats?.routines_completees || 0}
+            label="Routines complétées"
+          />
+          <StatCard
+            icon="time-outline"
+            iconColor="#3B82F6"
+            value={stats?.temps_total || "0h 0m"}
+            label="Temps total"
+          />
+          <StatCard
+            icon="flame-outline"
+            iconColor="#F97316"
+            value={`${stats?.serie_actuelle || 0} jours`}
+            label="Série actuelle"
+          />
+          <StatCard
+            icon="stats-chart-outline"
+            iconColor="#8B5CF6"
+            value={`${stats?.taux_reussite || 0}%`}
+            label="Taux de réussite"
+          />
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
-}
+};
 
 // ================================================================
-// Styles
+// Composant StatCard
 // ================================================================
+const StatCard = ({ icon, iconColor, value, label }) => {
+  return (
+    <View style={styles.statCard}>
+      <Ionicons name={icon} size={32} color={iconColor} />
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
-  },
   container: {
     flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+  loadingText: {
+    textAlign: "center",
+    marginTop: 50,
+    fontSize: 16,
+    color: "#64748B",
+  },
+  header: {
     padding: 20,
+    paddingTop: 10,
   },
   title: {
     fontSize: 28,
-    fontWeight: "700",
-    color: "#1B3A6B",
+    fontWeight: "bold",
+    color: "#1E293B",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#6B7280",
-    marginBottom: 24,
+    color: "#64748B",
   },
   weekCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    margin: 20,
+    marginTop: 10,
     padding: 20,
-    marginBottom: 20,
+    borderRadius: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
   },
   weekTitle: {
     fontSize: 18,
-    fontWeight: "700",
-    color: "#1B3A6B",
+    fontWeight: "600",
+    color: "#1E293B",
     marginBottom: 20,
   },
   weekGraph: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: 4,
+    gap: 6,
   },
   dayContainer: {
     alignItems: "center",
   },
   dayBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
-    borderWidth: 2,
+    marginBottom: 6,
   },
   dayBoxValidated: {
-    backgroundColor: "#D1FAE5",
-    borderColor: "#10B981",
+    backgroundColor: "#10B981",
   },
   dayBoxFailed: {
-    backgroundColor: "#FEE2E2",
-    borderColor: "#EF4444",
+    backgroundColor: "#EF4444",
   },
   dayLabel: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#1B3A6B",
-    marginBottom: 4,
+    color: "#64748B",
+    marginBottom: 2,
   },
   dateLabel: {
-    fontSize: 12,
-    color: "#9CA3AF",
+    fontSize: 10,
+    color: "#94A3B8",
   },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    padding: 10,
+    gap: 10,
   },
   statCard: {
     backgroundColor: "#FFFFFF",
+    width: "48%",
+    padding: 20,
     borderRadius: 16,
-    padding: 16,
-    width: (width - 52) / 2,
+    alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 2,
-  },
-  statIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  statLabel: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: 4,
+    elevation: 3,
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#1B3A6B",
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1E293B",
+    marginTop: 12,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#64748B",
+    textAlign: "center",
+    marginTop: 4,
   },
 });
+
+export default StatsScreen;

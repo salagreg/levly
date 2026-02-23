@@ -1,18 +1,41 @@
 // ================================================================
-// SettingsScreen - Écran des paramètres
+// Écran des paramètres
 // ================================================================
 
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { getProfile } from "../services/settingsService";
+import { logout } from "../services/authService";
 
-export default function SettingsScreen() {
-  // Données mockées de l'utilisateur
-  const user = {
-    name: "Grégory Sala",
-    email: "gregory@levly.com",
+const SettingsScreen = () => {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      const data = await getProfile();
+      setProfile(data);
+    } catch (error) {
+      console.error("Erreur chargement profil:", error);
+      Alert.alert("Erreur", "Impossible de charger le profil");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -24,216 +47,188 @@ export default function SettingsScreen() {
         {
           text: "Se déconnecter",
           style: "destructive",
-          onPress: () => {
-            // TODO: Appeler l'API de déconnexion
-            router.replace("/auth");
+          onPress: async () => {
+            await logout();
+            router.replace("/onboarding/step1");
           },
         },
       ]
     );
   };
 
-  const handleProfile = () => {
-    Alert.alert("Mon profil", "Fonctionnalité à venir !");
+  const handleOptionPress = (option) => {
+    Alert.alert("Fonctionnalité à venir", `${option} sera disponible prochainement`);
   };
 
-  const handleNotifications = () => {
-    Alert.alert("Notifications", "Fonctionnalité à venir !");
-  };
-
-  const handleApplications = () => {
-    Alert.alert("Applications", "Fonctionnalité à venir !");
-  };
-
-  const handleSupport = () => {
-    Alert.alert("Aide & Support", "Fonctionnalité à venir !");
-  };
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.loadingText}>Chargement...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <View style={styles.container}>
-        {/* Titre */}
-        <Text style={styles.title}>Paramètres</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Paramètres</Text>
+          <Text style={styles.subtitle}>
+            Gérez votre compte et vos préférences
+          </Text>
+        </View>
 
-        {/* Sous-titre */}
-        <Text style={styles.subtitle}>
-          Gérez votre compte et vos préférences
-        </Text>
-
-        {/* Carte utilisateur */}
+        {/* Carte Utilisateur */}
         <View style={styles.userCard}>
-          {/* Avatar */}
           <View style={styles.avatar}>
-            <Ionicons name="person" size={40} color="#5B7EBD" />
+            <Text style={styles.avatarText}>
+              {profile?.prenom?.[0]}{profile?.nom?.[0]}
+            </Text>
           </View>
-
-          {/* Infos */}
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user.name}</Text>
-            <Text style={styles.userEmail}>{user.email}</Text>
+            <Text style={styles.userName}>
+              {profile?.prenom} {profile?.nom}
+            </Text>
+            <Text style={styles.userEmail}>{profile?.email}</Text>
           </View>
         </View>
 
         {/* Options */}
-        <View style={styles.optionsList}>
+        <View style={styles.optionsContainer}>
           <SettingOption
             icon="person-outline"
-            iconColor="#5B7EBD"
+            iconColor="#3B82F6"
             title="Mon profil"
-            subtitle="Gérer vos informations personnelles"
-            onPress={handleProfile}
+            subtitle="Informations personnelles"
+            onPress={() => handleOptionPress("Mon profil")}
           />
-
           <SettingOption
             icon="notifications-outline"
-            iconColor="#8B5CF6"
-            title="Notifications"
-            subtitle="Configurer vos rappels"
-            onPress={handleNotifications}
-          />
-
-          <SettingOption
-            icon="apps"
             iconColor="#10B981"
-            title="Applications"
-            subtitle="Gérer les intégrations"
-            onPress={handleApplications}
+            title="Notifications"
+            subtitle="Gérer les rappels"
+            onPress={() => handleOptionPress("Notifications")}
           />
-
+          <SettingOption
+            icon="shield-checkmark-outline"
+            iconColor="#8B5CF6"
+            title="Confidentialité"
+            subtitle="Sécurité et données"
+            onPress={() => handleOptionPress("Confidentialité")}
+          />
           <SettingOption
             icon="help-circle-outline"
             iconColor="#F59E0B"
             title="Aide & Support"
-            subtitle="Obtenir de l'aide"
-            onPress={handleSupport}
+            subtitle="FAQ et contact"
+            onPress={() => handleOptionPress("Aide & Support")}
           />
         </View>
 
         {/* Version */}
         <Text style={styles.version}>Version 1.0.0</Text>
 
-        {/* Bouton déconnexion */}
+        {/* Bouton Déconnexion */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+          <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
           <Text style={styles.logoutText}>Se déconnecter</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
-}
+};
 
 // ================================================================
 // Composant SettingOption
 // ================================================================
-
-interface SettingOptionProps {
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
-  title: string;
-  subtitle: string;
-  onPress: () => void;
-}
-
-function SettingOption({
-  icon,
-  iconColor,
-  title,
-  subtitle,
-  onPress,
-}: SettingOptionProps) {
+const SettingOption = ({ icon, iconColor, title, subtitle, onPress }) => {
   return (
-    <TouchableOpacity style={styles.optionCard} onPress={onPress}>
-      {/* Icône */}
-      <View style={[styles.optionIcon, { backgroundColor: iconColor + "20" }]}>
+    <TouchableOpacity style={styles.option} onPress={onPress}>
+      <View style={[styles.optionIcon, { backgroundColor: `${iconColor}20` }]}>
         <Ionicons name={icon} size={24} color={iconColor} />
       </View>
-
-      {/* Contenu */}
-      <View style={styles.optionContent}>
+      <View style={styles.optionInfo}>
         <Text style={styles.optionTitle}>{title}</Text>
         <Text style={styles.optionSubtitle}>{subtitle}</Text>
       </View>
-
-      {/* Flèche */}
-      <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+      <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
     </TouchableOpacity>
   );
-}
-
-// ================================================================
-// Styles
-// ================================================================
+};
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
-  },
   container: {
     flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+  loadingText: {
+    textAlign: "center",
+    marginTop: 50,
+    fontSize: 16,
+    color: "#64748B",
+  },
+  header: {
     padding: 20,
+    paddingTop: 10,
   },
   title: {
     fontSize: 28,
-    fontWeight: "700",
-    color: "#1B3A6B",
+    fontWeight: "bold",
+    color: "#1E293B",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#6B7280",
-    marginBottom: 24,
+    color: "#64748B",
   },
   userCard: {
+    backgroundColor: "#5B7EBD",
+    margin: 20,
+    marginTop: 10,
+    padding: 20,
+    borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#5B7EBD",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: "#5B7EBD",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
+  },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#5B7EBD",
   },
   userInfo: {
     flex: 1,
   },
   userName: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "600",
     color: "#FFFFFF",
     marginBottom: 4,
   },
   userEmail: {
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "#E0E7FF",
   },
-  optionsList: {
-    gap: 12,
-    marginBottom: 24,
+  optionsContainer: {
+    padding: 20,
+    paddingTop: 10,
   },
-  optionCard: {
+  option: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
     padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderRadius: 12,
+    marginBottom: 12,
   },
   optionIcon: {
     width: 48,
@@ -243,37 +238,42 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 16,
   },
-  optionContent: {
+  optionInfo: {
     flex: 1,
   },
   optionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1B3A6B",
+    color: "#1E293B",
     marginBottom: 4,
   },
   optionSubtitle: {
-    fontSize: 13,
-    color: "#6B7280",
+    fontSize: 14,
+    color: "#64748B",
   },
   version: {
-    fontSize: 14,
-    color: "#9CA3AF",
     textAlign: "center",
-    marginBottom: 16,
+    fontSize: 12,
+    color: "#94A3B8",
+    marginTop: 10,
+    marginBottom: 20,
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FEE2E2",
-    paddingVertical: 14,
+    backgroundColor: "#EF4444",
+    marginHorizontal: 20,
+    marginBottom: 40,
+    padding: 16,
     borderRadius: 12,
     gap: 8,
   },
   logoutText: {
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
-    color: "#EF4444",
   },
 });
+
+export default SettingsScreen;

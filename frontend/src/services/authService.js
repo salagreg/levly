@@ -29,7 +29,7 @@ export const register = async (userData) => {
       nom: userData.nom,
       date_de_naissance: userData.date_de_naissance,
       email: userData.email,
-      mot_de_passe: userData.password,
+      mot_de_passe: userData.mot_de_passe,
     });
 
     await AsyncStorage.setItem("token", response.data.token);

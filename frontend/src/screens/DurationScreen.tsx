@@ -9,10 +9,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   Dimensions,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -32,12 +29,7 @@ export default function DurationScreen() {
   const [spotifyDuration, setSpotifyDuration] = useState(30);
   const [stravaDuration, setStravaDuration] = useState(30);
 
-  // Tâches manuelles
-  const [tasks, setTasks] = useState<string[]>([]);
-  const [newTaskText, setNewTaskText] = useState("");
-  const [showAddTask, setShowAddTask] = useState(false);
-
-  // Charger les connexions et tâches au montage
+  // Charger les connexions au montage
   useEffect(() => {
     loadData();
   }, []);
@@ -50,42 +42,8 @@ export default function DurationScreen() {
 
       setSpotifyConnected(spotify === "true");
       setStravaConnected(strava === "true");
-
-      // Charger les tâches
-      const savedTasks = await AsyncStorage.getItem("manualTasks");
-      if (savedTasks) {
-        setTasks(JSON.parse(savedTasks));
-      }
     } catch (error) {
       console.error("Erreur chargement données:", error);
-    }
-  };
-
-  const handleAddTask = async () => {
-    if (newTaskText.trim()) {
-      const updatedTasks = [...tasks, newTaskText.trim()];
-      setTasks(updatedTasks);
-      setNewTaskText("");
-      setShowAddTask(false);
-
-      // Sauvegarder dans AsyncStorage
-      try {
-        await AsyncStorage.setItem("manualTasks", JSON.stringify(updatedTasks));
-      } catch (error) {
-        console.error("Erreur sauvegarde tâche:", error);
-      }
-    }
-  };
-
-  const handleRemoveTask = async (index: number) => {
-    const updatedTasks = tasks.filter((_, i) => i !== index);
-    setTasks(updatedTasks);
-
-    // Sauvegarder dans AsyncStorage
-    try {
-      await AsyncStorage.setItem("manualTasks", JSON.stringify(updatedTasks));
-    } catch (error) {
-      console.error("Erreur suppression tâche:", error);
     }
   };
 
@@ -94,6 +52,11 @@ export default function DurationScreen() {
     try {
       await AsyncStorage.setItem("spotifyDuration", spotifyDuration.toString());
       await AsyncStorage.setItem("stravaDuration", stravaDuration.toString());
+
+      console.log("✅ Durées sauvegardées:", {
+        spotify: spotifyDuration,
+        strava: stravaDuration,
+      });
     } catch (error) {
       console.error("Erreur sauvegarde durées:", error);
     }
@@ -104,107 +67,70 @@ export default function DurationScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-      >
-        {/* Header avec back button + titre */}
-        <View style={styles.header}>
-          <BackButton onPress={() => router.back()} />
-          <Text
-            style={styles.headerTitle}
-            adjustsFontSizeToFit
-            numberOfLines={1}
-          >
-            Définir les durées
+      {/* Header avec back button + titre */}
+      <View style={styles.header}>
+        <BackButton onPress={() => router.back()} />
+        <Text style={styles.headerTitle} adjustsFontSizeToFit numberOfLines={1}>
+          Définir les durées
+        </Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.container}>
+        {/* Message informatif */}
+        <View style={styles.infoCard}>
+          <Ionicons name="information-circle" size={24} color="#5B7EBD" />
+          <Text style={styles.infoText}>
+            Définissez la durée quotidienne que vous souhaitez consacrer à
+            chaque activité
           </Text>
-          <View style={styles.headerSpacer} />
         </View>
 
-        <ScrollView
-          contentContainerStyle={styles.container}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Section Applications connectées */}
-          {(spotifyConnected || stravaConnected) && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Applications connectées</Text>
-
-              {/* Spotify */}
-              {spotifyConnected && (
-                <AppDurationCard
-                  name="Spotify"
-                  icon="musical-notes"
-                  iconColor="#1DB954"
-                  duration={spotifyDuration}
-                  onDurationChange={setSpotifyDuration}
-                />
-              )}
-
-              {/* Strava */}
-              {stravaConnected && (
-                <AppDurationCard
-                  name="Strava"
-                  icon="bicycle-outline"
-                  iconColor="#FC4C02"
-                  duration={stravaDuration}
-                  onDurationChange={setStravaDuration}
-                />
-              )}
-            </View>
-          )}
-
-          {/* Section Tâches non trackées */}
+        {/* Section Applications connectées */}
+        {(spotifyConnected || stravaConnected) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tâches non trackées</Text>
+            <Text style={styles.sectionTitle}>Applications connectées</Text>
 
-            {/* Liste des tâches */}
-            {tasks.map((task, index) => (
-              <View key={index} style={styles.taskCard}>
-                <Text style={styles.taskText}>{task}</Text>
-                <TouchableOpacity onPress={() => handleRemoveTask(index)}>
-                  <Ionicons name="close-circle" size={24} color="#EF4444" />
-                </TouchableOpacity>
-              </View>
-            ))}
-
-            {/* Input ajout tâche */}
-            {showAddTask && (
-              <View style={styles.addTaskInput}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Nom de la tâche"
-                  value={newTaskText}
-                  onChangeText={setNewTaskText}
-                  autoFocus
-                  onSubmitEditing={handleAddTask}
-                  returnKeyType="done"
-                />
-                <TouchableOpacity onPress={handleAddTask}>
-                  <Ionicons name="checkmark-circle" size={32} color="#10B981" />
-                </TouchableOpacity>
-              </View>
+            {/* Spotify */}
+            {spotifyConnected && (
+              <AppDurationCard
+                name="Spotify"
+                icon="musical-notes"
+                iconColor="#1DB954"
+                duration={spotifyDuration}
+                onDurationChange={setSpotifyDuration}
+              />
             )}
 
-            {/* Bouton Ajouter une tâche */}
-            {!showAddTask && (
-              <TouchableOpacity
-                style={styles.addTaskButton}
-                onPress={() => setShowAddTask(true)}
-              >
-                <Ionicons name="add-circle-outline" size={24} color="#5B7EBD" />
-                <Text style={styles.addTaskButtonText}>Ajouter une tâche</Text>
-              </TouchableOpacity>
+            {/* Strava */}
+            {stravaConnected && (
+              <AppDurationCard
+                name="Strava"
+                icon="bicycle-outline"
+                iconColor="#FC4C02"
+                duration={stravaDuration}
+                onDurationChange={setStravaDuration}
+              />
             )}
           </View>
+        )}
 
-          {/* Bouton Terminé */}
-          <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
-            <Text style={styles.finishButtonText}>Terminé</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {/* Message si aucune app connectée */}
+        {!spotifyConnected && !stravaConnected && (
+          <View style={styles.emptyState}>
+            <Ionicons name="alert-circle-outline" size={64} color="#D1D5DB" />
+            <Text style={styles.emptyText}>Aucune application connectée</Text>
+            <Text style={styles.emptySubtext}>
+              Retournez à l'écran précédent pour connecter Spotify ou Strava
+            </Text>
+          </View>
+        )}
+
+        {/* Bouton Terminé */}
+        <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
+          <Text style={styles.finishButtonText}>Terminé</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -260,6 +186,10 @@ function AppDurationCard({
           maximumTrackTintColor="#E5E7EB"
           thumbTintColor={iconColor}
         />
+        <View style={styles.sliderMinMax}>
+          <Text style={styles.sliderMinMaxText}>10 min</Text>
+          <Text style={styles.sliderMinMaxText}>60 min</Text>
+        </View>
       </View>
     </View>
   );
@@ -273,9 +203,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-  },
-  keyboardView: {
-    flex: 1,
   },
   header: {
     flexDirection: "row",
@@ -299,6 +226,21 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 10,
     paddingBottom: 40,
+  },
+  infoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EEF2FF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#1B3A6B",
+    marginLeft: 12,
+    lineHeight: 20,
   },
   section: {
     marginBottom: 30,
@@ -357,54 +299,31 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 40,
   },
-  taskCard: {
+  sliderMinMax: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#FAFAFA",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    marginTop: 4,
   },
-  taskText: {
-    fontSize: 16,
-    color: "#1B3A6B",
-    flex: 1,
+  sliderMinMaxText: {
+    fontSize: 12,
+    color: "#9CA3AF",
   },
-  addTaskInput: {
-    flexDirection: "row",
+  emptyState: {
     alignItems: "center",
-    backgroundColor: "#FAFAFA",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#5B7EBD",
+    paddingVertical: 60,
   },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: "#1B3A6B",
-    paddingRight: 12,
-  },
-  addTaskButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderStyle: "dashed",
-  },
-  addTaskButtonText: {
-    fontSize: 16,
+  emptyText: {
+    fontSize: 18,
     fontWeight: "600",
-    color: "#5B7EBD",
-    marginLeft: 8,
+    color: "#6B7280",
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    marginTop: 8,
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
   finishButton: {
     backgroundColor: "#5B7EBD",

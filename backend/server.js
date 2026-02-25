@@ -16,6 +16,9 @@ const dashboardRoutes = require("./src/routes/dashboardRoutes");
 const rewardsRoutes = require("./src/routes/rewardsRoutes");
 const statsRoutes = require("./src/routes/statsRoutes");
 const settingsRoutes = require("./src/routes/settingsRoutes");
+const syncRoutes = require("./src/routes/syncRoutes");
+const tacheRoutes = require("./src/routes/tacheRoutes");
+const resetTachesCron = require("./src/jobs/resetTachesCron");
 
 const app = express();
 
@@ -45,6 +48,8 @@ app.use("/api", dashboardRoutes);
 app.use("/api/rewards", rewardsRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/sync", syncRoutes);
+app.use("/api/taches", tacheRoutes);
 
 const port = process.env.PORT || 3000;
 
@@ -91,3 +96,5 @@ app.listen(port, () => {
   console.log(`🚀 Serveur Levly démarré sur le port ${port}`);
   console.log(`📍 Health check: http://localhost:${port}/health`);
 });
+
+resetTachesCron();

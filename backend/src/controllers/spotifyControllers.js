@@ -11,7 +11,49 @@ class SpotifyController {
    */
   static async connect(req, res) {
     try {
-      const userId = req.user.userId;
+      const oauthToken = req.query.token;
+
+      console.log("\n═══════════════════════════════════════");
+      console.log("🎧 SPOTIFY CONNECT APPELÉ");
+      console.log("═══════════════════════════════════════");
+      console.log(
+        "  Token reçu:",
+        oauthToken ? oauthToken.substring(0, 30) + "..." : "❌ ABSENT"
+      );
+
+      if (!oauthToken) {
+        return res.status(401).json({
+          success: false,
+          message: "Token OAuth manquant",
+        });
+      }
+
+      // Vérifier et décoder le token OAuth
+      const jwt = require("jsonwebtoken");
+      let decoded;
+
+      try {
+        decoded = jwt.verify(oauthToken, process.env.JWT_SECRET);
+        console.log("✅ Token OAuth valide:", decoded);
+      } catch (error) {
+        console.error("❌ Token OAuth invalide:", error.message);
+        return res.status(401).json({
+          success: false,
+          message: "Token OAuth invalide ou expiré",
+        });
+      }
+
+      // Vérifier que c'est bien un token OAuth
+      if (decoded.type !== "oauth") {
+        console.error("❌ Type de token incorrect:", decoded.type);
+        return res.status(401).json({
+          success: false,
+          message: "Type de token invalide",
+        });
+      }
+
+      const userId = decoded.userId;
+      console.log("👤 UserId extrait du token:", userId);
 
       // Vérifier si Spotify est déjà connecté
       const existingPilier = await Pilier.findByUserAndSource(
@@ -19,7 +61,8 @@ class SpotifyController {
         "spotify"
       );
 
-      if (existingPilier) {
+      if (existingPilier && existingPilier.access_token) {
+        console.log("⚠️ Spotify déjà connecté pour cet utilisateur");
         return res.status(400).json({
           success: false,
           message: "Spotify est déjà connecté",
@@ -29,7 +72,6 @@ class SpotifyController {
       // Générer l'URL d'autorisation Spotify
       const authUrl = SpotifyAPI.getAuthorizationUrl(userId);
 
-      // 🔍 DEBUG : Afficher l'URL générée
       console.log("\n🔍 DEBUG URL GÉNÉRÉE:");
       console.log("  Full URL:", authUrl);
       console.log(

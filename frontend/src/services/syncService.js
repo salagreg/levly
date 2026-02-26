@@ -6,6 +6,7 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API_BASE_URL from "../config/api";
 import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
 
 // ================================================================
 // Connecter Strava
@@ -33,11 +34,13 @@ export const connectStrava = async () => {
     const fullUrl = `${API_BASE_URL}/strava/connect?token=${oauthToken}`;
     console.log("🔗 URL complète:", fullUrl);
 
+    const redirectUrl = Linking.createURL("strava-callback");
+
     // Ouvrir le navigateur avec le token OAuth temporaire
     console.log("🌐 Ouverture navigateur Strava...");
     const result = await WebBrowser.openAuthSessionAsync(
       `${API_BASE_URL}/strava/connect?token=${oauthToken}`,
-      null
+      redirectUrl
     );
 
     console.log("Strava OAuth result:", result);
@@ -79,11 +82,13 @@ export const connectSpotify = async () => {
     const oauthToken = response.data.oauthToken;
     console.log("✅ Token OAuth reçu:", oauthToken.substring(0, 30) + "...");
 
+    const redirectUri = Linking.createURL("spotify-callback");
+
     // Ouvrir le navigateur avec le token OAuth temporaire
     console.log("🌐 Ouverture navigateur Spotify...");
     const result = await WebBrowser.openAuthSessionAsync(
       `${API_BASE_URL}/spotify/connect?token=${oauthToken}`,
-      null
+      redirectUri
     );
 
     console.log("Spotify OAuth result:", result);

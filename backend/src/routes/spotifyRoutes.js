@@ -12,7 +12,7 @@ const verifyToken = require("../middlewares/authMiddleware");
  * @route   GET /api/spotify/connect
  * @desc    Initier la connexion OAuth Spotify
  */
-router.get("/connect", verifyToken, SpotifyControllers.connect);
+router.get("/connect", SpotifyControllers.connect);
 
 /**
  * @route   GET /api/strava/callback

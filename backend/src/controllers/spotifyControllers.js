@@ -274,41 +274,7 @@ class SpotifyController {
       console.log("═══════════════════════════════════════\n");
 
       // Page de succès
-      res.send(`
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                text-align: center;
-                padding: 50px;
-                background: linear-gradient(135deg, #1DB954 0%, #191414 100%);
-                color: white;
-              }
-              .container {
-                background: white;
-                color: #333;
-                padding: 40px;
-                border-radius: 10px;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-                max-width: 500px;
-                margin: 0 auto;
-              }
-              h1 { color: #1DB954; }
-              .success { font-size: 60px; margin-bottom: 20px; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="success">✅</div>
-              <h1>Spotify connecté avec succès !</h1>
-              <p><strong>Utilisateur ID:</strong> ${userId}</p>
-              <p>Vous pouvez fermer cette fenêtre et retourner à Levly.</p>
-            </div>
-          </body>
-        </html>
-      `);
+      res.redirect("levly://spotify-callback?success=true");
     } catch (error) {
       console.error("\n❌❌❌ ERREUR CALLBACK SPOTIFY ❌❌❌");
       console.error("Message:", error.message);

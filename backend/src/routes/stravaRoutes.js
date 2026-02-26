@@ -16,7 +16,7 @@ const verifyToken = require("../middlewares/authMiddleware");
  * @route   GET /api/strava/connect
  * @desc    Initier la connexion OAuth Strava
  */
-router.get("/connect", verifyToken, stravaControllers.connect);
+router.get("/connect", stravaControllers.connect);
 
 /**
  * @route   GET /api/strava/callback

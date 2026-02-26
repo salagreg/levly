@@ -2,102 +2,101 @@
 // dashboardServices.js - Logique métier du dashboard
 // ================================================================
 
-const db = require("../config/database");
+const Jeton = require("../models/jeton");
+const Serie = require("../models/serie");
+const Pilier = require("../models/pilier");
+const Tache = require("../models/tache");
 
 // ================================================================
-// Récupérer toutes les données du dashboard pour un utilisateur
+// Récupérer les données du dashboard (100% dynamique)
 // ================================================================
 exports.getDashboardData = async (userId) => {
   try {
-    console.log("📊 getDashboardData appelé pour userId:", userId);
+    console.log("📊 getDashboardData pour userId:", userId);
 
-    // 1. Récupérer les tokens et la série
-    const userStatsQuery = `
-      SELECT 
-        COALESCE(SUM(j.montant_jeton), 0) as total_tokens,
-        COALESCE(s.serie_actuelle, 0) as streak
-      FROM utilisateur u
-      LEFT JOIN jeton j ON u.id = j.id_utilisateur
-      LEFT JOIN serie s ON u.id = s.id_utilisateur
-      WHERE u.id = $1
-      GROUP BY u.id, s.serie_actuelle
-    `;
+    // ================================================================
+    // 1. Récupérer les tokens (solde total)
+    // ================================================================
+    const tokens = await Jeton.getBalance(userId);
+    console.log("💰 Tokens récupérés:", tokens);
 
-    console.log("🔍 Exécution requête stats...");
-    const statsResult = await db.query(userStatsQuery, [userId]);
-    const stats = statsResult.rows[0] || { total_tokens: 0, streak: 0 };
-    console.log("✅ Stats récupérées:", stats);
+    // ================================================================
+    // 2. Récupérer la série
+    // ================================================================
+    const serieResult = await Serie.findByUserId(userId);
+    const streak = serieResult?.serie_actuelle || 0;
+    console.log("🔥 Série récupérée:", streak);
 
-    // 2. Récupérer les piliers (applications connectées)
-    const piliersQuery = `
-      SELECT 
-        p.id_pilier,
-        p.nom_pilier,
-        p.objectif_config,
-        p.source_externe,
-        COALESCE(SUM(a.duree_minutes), 0) as duree_actuelle
-      FROM pilier p
-      LEFT JOIN activite a ON p.id_pilier = a.id_pilier 
-        AND DATE(a.date_activite) = CURRENT_DATE
-      WHERE p.id_utilisateur = $1 AND p.pilier_actif = true
-      GROUP BY p.id_pilier
-    `;
+    // ================================================================
+    // 3. Récupérer les piliers connectés
+    // ================================================================
+    const piliers = await Pilier.findByUserId(userId);
+    console.log("🧱 Piliers trouvés:", piliers);
 
-    console.log("🔍 Exécution requête piliers...");
-    const piliersResult = await db.query(piliersQuery, [userId]);
-    console.log("✅ Piliers récupérés:", piliersResult.rows);
+    // Mapper les piliers pour le frontend
+    const apps = piliers.map((pilier) => {
+      console.log("🔍 Pilier en cours:", {
+        nom: pilier.nom_pilier,
+        source: pilier.source_externe,
+        objectif_config: pilier.objectif_config,
+      });
 
-    // Formatter les piliers pour le frontend
-    const apps = piliersResult.rows.map((pilier) => {
-      // Extraire l'objectif depuis le JSON
-      const objectif_minutes = pilier.objectif_config?.objectif_minutes || 30;
+      // Extraire la durée depuis objectif_config
+      const targetDuration =
+        pilier.objectif_config?.duree_minutes ||
+        pilier.duree_objectif_minutes ||
+        30;
+
+      console.log("⏱️ Durée extraite:", targetDuration);
+
+      // Pour l'instant, current = 0 (on implémentera la validation plus tard)
+      const current = 0;
+
+      // Mapper les icônes et couleurs selon la source
+      let icon = "apps";
+      let iconColor = "#6B7280";
+      let name = pilier.nom_pilier;
+
+      if (pilier.source_externe === "spotify") {
+        icon = "musical-notes";
+        iconColor = "#1DB954";
+        name = "Spotify";
+      } else if (pilier.source_externe === "strava") {
+        icon = "bicycle-outline";
+        iconColor = "#FC4C02";
+        name = "Strava";
+      }
 
       return {
-        name: pilier.source_externe === "strava" ? "Strava" : "Spotify",
-        icon:
-          pilier.source_externe === "strava"
-            ? "bicycle-outline"
-            : "musical-notes",
-        iconColor: pilier.source_externe === "strava" ? "#FC4C02" : "#1DB954",
-        current: parseInt(pilier.duree_actuelle),
-        target: objectif_minutes,
-        validated: parseInt(pilier.duree_actuelle) >= objectif_minutes,
+        name,
+        icon,
+        iconColor,
+        current,
+        target: targetDuration,
+        validated: false,
       };
     });
 
-    console.log("✅ Apps formatées:", apps);
+    console.log("📱 Apps formatées:", JSON.stringify(apps, null, 2));
 
-    // 3. Récupérer les tâches du jour (mockées pour le MVP)
-    const tasks = [
-      {
-        id: 1,
-        text: "Rendez-vous chez le médecin à 15h",
-        category: "Santé",
-        completed: false,
-      },
-      {
-        id: 2,
-        text: "Acheter du pain et du lait",
-        category: "Courses",
-        completed: true,
-      },
-      {
-        id: 3,
-        text: "Regarder un documentaire sur l'histoire",
-        category: "Culture",
-        completed: false,
-      },
-    ];
+    // ================================================================
+    // 4. Récupérer les tâches manuelles (100% dynamique depuis DB)
+    // ================================================================
+    const taches = await Tache.findByUser(userId); // ← CORRIGÉ : findByUser
+    console.log("📋 Tâches récupérées:", taches);
 
-    // 4. Construire la réponse
+    // ================================================================
+    // 5. Retourner TOUTES les données du dashboard
+    // ================================================================
     const response = {
-      tokens: parseInt(stats.total_tokens),
-      streak: parseInt(stats.streak),
-      apps: apps,
-      tasks: tasks,
+      tokens,
+      streak,
+      apps,
+      tasks: taches || [],
     };
 
-    console.log("🎉 Réponse finale:", JSON.stringify(response, null, 2));
+    console.log("✅ Dashboard data complète:", JSON.stringify(response, null, 2));
+
     return response;
   } catch (error) {
     console.error("❌ Erreur getDashboardData:", error);

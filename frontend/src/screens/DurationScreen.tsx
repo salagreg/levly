@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -17,120 +19,176 @@ import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BackButton from "../components/common/BackButton";
+import { getConnectionStatus } from "../services/syncService";
+import { updatePilierDuration } from "../services/durationService";
 
 const { width } = Dimensions.get("window");
 
 export default function DurationScreen() {
-  // État des connexions (récupéré de l'écran précédent)
+  // État des connexions
   const [spotifyConnected, setSpotifyConnected] = useState(false);
   const [stravaConnected, setStravaConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Durées des applications
   const [spotifyDuration, setSpotifyDuration] = useState(30);
   const [stravaDuration, setStravaDuration] = useState(30);
 
-  // Charger les connexions au montage
+  // Charger les connexions depuis la DB
   useEffect(() => {
-    loadData();
+    loadConnectionStatus();
   }, []);
 
-  const loadData = async () => {
+  const loadConnectionStatus = async () => {
     try {
-      // Charger l'état des connexions
-      const spotify = await AsyncStorage.getItem("spotifyConnected");
-      const strava = await AsyncStorage.getItem("stravaConnected");
+      setLoading(true);
 
-      setSpotifyConnected(spotify === "true");
-      setStravaConnected(strava === "true");
+      // Récupérer le statut des connexions depuis la DB
+      const status = await getConnectionStatus();
+
+      console.log("📱 Statut connexions:", status);
+
+      setSpotifyConnected(status.spotify || false);
+      setStravaConnected(status.strava || false);
+
+      // Charger les durées depuis AsyncStorage (backup local)
+      const savedSpotifyDuration = await AsyncStorage.getItem(
+        "spotifyDuration"
+      );
+      const savedStravaDuration = await AsyncStorage.getItem("stravaDuration");
+
+      if (savedSpotifyDuration) {
+        setSpotifyDuration(parseInt(savedSpotifyDuration));
+      }
+
+      if (savedStravaDuration) {
+        setStravaDuration(parseInt(savedStravaDuration));
+      }
     } catch (error) {
-      console.error("Erreur chargement données:", error);
+      console.error("❌ Erreur chargement statut:", error);
+      Alert.alert(
+        "Erreur",
+        "Impossible de charger les connexions. Vérifiez votre connexion."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleFinish = async () => {
-    // Sauvegarder les durées
     try {
-      await AsyncStorage.setItem("spotifyDuration", spotifyDuration.toString());
+      console.log("💾 Sauvegarde des durées...");
+
+      // Sauvegarder les durées en base de données
+      if (spotifyConnected) {
+        await updatePilierDuration("spotify", spotifyDuration);
+        console.log("✅ Durée Spotify sauvegardée:", spotifyDuration);
+      }
+
+      if (stravaConnected) {
+        await updatePilierDuration("strava", stravaDuration);
+        console.log("✅ Durée Strava sauvegardée:", stravaDuration);
+      }
+
+      // Sauvegarder aussi dans AsyncStorage (backup local)
+      await AsyncStorage.setItem(
+        "spotifyDuration",
+        spotifyDuration.toString()
+      );
       await AsyncStorage.setItem("stravaDuration", stravaDuration.toString());
 
-      console.log("✅ Durées sauvegardées:", {
-        spotify: spotifyDuration,
-        strava: stravaDuration,
-      });
-    } catch (error) {
-      console.error("Erreur sauvegarde durées:", error);
-    }
+      console.log("✅ Durées sauvegardées avec succès !");
 
-    // Naviguer vers le dashboard
-    router.replace("/(tabs)");
+      // Naviguer vers le dashboard
+      router.replace("/(tabs)");
+    } catch (error) {
+      console.error("❌ Erreur sauvegarde durées:", error);
+      Alert.alert(
+        "Erreur",
+        "Impossible de sauvegarder les durées. Vérifiez votre connexion."
+      );
+    }
   };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       {/* Header avec back button + titre */}
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} />
-        <Text style={styles.headerTitle} adjustsFontSizeToFit numberOfLines={1}>
+        <BackButton onPress={() => router.push("/sync")} />
+        <Text
+          style={styles.headerTitle}
+          adjustsFontSizeToFit
+          numberOfLines={1}
+        >
           Définir les durées
         </Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.container}>
-        {/* Message informatif */}
-        <View style={styles.infoCard}>
-          <Ionicons name="information-circle" size={24} color="#5B7EBD" />
-          <Text style={styles.infoText}>
-            Définissez la durée quotidienne que vous souhaitez consacrer à
-            chaque activité
-          </Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#5B7EBD" />
+          <Text style={styles.loadingText}>Chargement...</Text>
         </View>
-
-        {/* Section Applications connectées */}
-        {(spotifyConnected || stravaConnected) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Applications connectées</Text>
-
-            {/* Spotify */}
-            {spotifyConnected && (
-              <AppDurationCard
-                name="Spotify"
-                icon="musical-notes"
-                iconColor="#1DB954"
-                duration={spotifyDuration}
-                onDurationChange={setSpotifyDuration}
-              />
-            )}
-
-            {/* Strava */}
-            {stravaConnected && (
-              <AppDurationCard
-                name="Strava"
-                icon="bicycle-outline"
-                iconColor="#FC4C02"
-                duration={stravaDuration}
-                onDurationChange={setStravaDuration}
-              />
-            )}
-          </View>
-        )}
-
-        {/* Message si aucune app connectée */}
-        {!spotifyConnected && !stravaConnected && (
-          <View style={styles.emptyState}>
-            <Ionicons name="alert-circle-outline" size={64} color="#D1D5DB" />
-            <Text style={styles.emptyText}>Aucune application connectée</Text>
-            <Text style={styles.emptySubtext}>
-              Retournez à l'écran précédent pour connecter Spotify ou Strava
+      ) : (
+        <ScrollView contentContainerStyle={styles.container}>
+          {/* Message informatif */}
+          <View style={styles.infoCard}>
+            <Ionicons name="information-circle" size={24} color="#5B7EBD" />
+            <Text style={styles.infoText}>
+              Définissez la durée quotidienne que vous souhaitez consacrer à
+              chaque activité
             </Text>
           </View>
-        )}
 
-        {/* Bouton Terminé */}
-        <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
-          <Text style={styles.finishButtonText}>Terminé</Text>
-        </TouchableOpacity>
-      </ScrollView>
+          {/* Section Applications connectées */}
+          {(spotifyConnected || stravaConnected) && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Applications connectées</Text>
+
+              {/* Spotify */}
+              {spotifyConnected && (
+                <AppDurationCard
+                  name="Spotify"
+                  icon="musical-notes"
+                  iconColor="#1DB954"
+                  duration={spotifyDuration}
+                  onDurationChange={setSpotifyDuration}
+                />
+              )}
+
+              {/* Strava */}
+              {stravaConnected && (
+                <AppDurationCard
+                  name="Strava"
+                  icon="bicycle-outline"
+                  iconColor="#FC4C02"
+                  duration={stravaDuration}
+                  onDurationChange={setStravaDuration}
+                />
+              )}
+            </View>
+          )}
+
+          {/* Message si aucune app connectée */}
+          {!spotifyConnected && !stravaConnected && (
+            <View style={styles.emptyState}>
+              <Ionicons name="alert-circle-outline" size={64} color="#D1D5DB" />
+              <Text style={styles.emptyText}>
+                Aucune application connectée
+              </Text>
+              <Text style={styles.emptySubtext}>
+                Retournez à l'écran précédent pour connecter Spotify ou Strava
+              </Text>
+            </View>
+          )}
+
+          {/* Bouton Terminé */}
+          <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
+            <Text style={styles.finishButtonText}>Terminé</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -221,6 +279,16 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#6B7280",
   },
   container: {
     padding: 20,

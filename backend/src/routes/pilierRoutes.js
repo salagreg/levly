@@ -5,9 +5,12 @@
 const express = require("express");
 const router = express.Router();
 
-const pilierControllers = require("../controllers/pilierControllers");
+const PilierControllers = require("../controllers/pilierControllers");
 const verifyToken = require("../middlewares/authMiddleware");
-const { validateBody, validateParams } = require("../middlewares/validationMiddleware");
+const {
+  validateBody,
+  validateParams,
+} = require("../middlewares/validationMiddleware");
 const {
   createPilierSchema,
   updatePilierSchema,
@@ -26,14 +29,14 @@ router.post(
   "/",
   verifyToken,
   validateBody(createPilierSchema),
-  pilierControllers.connectApp
+  PilierControllers.connectApp
 );
 
 /**
  * @route   GET /api/piliers
  * @desc    Récupérer toutes les applications connectées de l'utilisateur
  */
-router.get("/", verifyToken, pilierControllers.getUserApps);
+router.get("/", verifyToken, PilierControllers.getUserApps);
 
 /**
  * @route   PATCH /api/piliers/:id/duree
@@ -44,8 +47,14 @@ router.patch(
   verifyToken,
   validateParams(idParamSchema), // Valider que :id est un nombre valide
   validateBody(updatePilierSchema),
-  pilierControllers.updateDureeObjectif
+  PilierControllers.updateDureeObjectif
 );
+
+/**
+ * @route   PUT /api/piliers/duration
+ * @desc    Mettre à jour la durée d'un pilier (écran Définir durées)
+ */
+router.put("/duration", verifyToken, PilierControllers.updateDuration);
 
 /**
  * @route   DELETE /api/piliers/:id
@@ -55,7 +64,7 @@ router.delete(
   "/:id",
   verifyToken,
   validateParams(idParamSchema),
-  pilierControllers.disconnectApp
+  PilierControllers.disconnectApp
 );
 
 module.exports = router;

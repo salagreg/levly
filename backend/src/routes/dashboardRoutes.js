@@ -9,6 +9,6 @@ const dashboardController = require("../controllers/dashboardControllers");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 // GET /api/dashboard
-router.get("/dashboard", authMiddleware, dashboardController.getDashboard);
+router.get("/", authMiddleware, dashboardController.getDashboard);
 
 module.exports = router;

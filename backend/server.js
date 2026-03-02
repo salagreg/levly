@@ -44,7 +44,7 @@ app.use("/api/piliers", pilierRoutes);
 app.use("/api/strava", stravaRoutes);
 app.use("/api/spotify", spotifyRoutes);
 app.use("/api/validation", validationRoutes);
-app.use("/api", dashboardRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/rewards", rewardsRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/settings", settingsRoutes);

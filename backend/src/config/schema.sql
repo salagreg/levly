@@ -54,6 +54,7 @@ CREATE TABLE serie (
   id_utilisateur INT UNIQUE NOT NULL,
   serie_actuelle INT NOT NULL,
   derniere_validation DATE;
+  date_maj TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
   -- Contraintes de clés étrangères
   FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE

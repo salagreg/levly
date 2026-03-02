@@ -30,6 +30,7 @@ import {
   toggleTache,
   createTache,
   deleteTache,
+  validateDay,
 } from "../services/dashboardService";
 
 const { width } = Dimensions.get("window");
@@ -226,11 +227,24 @@ export default function DashboardScreen() {
   };
 
   // Valider la journée
-  const handleValidateDay = () => {
-    Alert.alert(
-      "Fonctionnalité à venir",
-      "La validation quotidienne sera implémentée dans Sprint 6"
-    );
+  const handleValidateDay = async () => {
+    try {
+      const response = await validateDay();
+
+      // IMPORTANT : Recharger TOUTES les données du dashboard
+      await loadDashboardData();
+
+      Alert.alert(
+        response.data.journee_complete ? "Bravo ! 🎉" : "Bien joué ! 💪",
+        `${response.data.piliers_valides}/${response.data.total_piliers} objectifs atteints\n\n` +
+          `💰 Tokens gagnés : +${response.data.tokens_gagnes}\n` +
+          `💰 Solde total : ${response.data.solde_tokens}\n` +
+          `🔥 Série : ${response.data.serie} jour(s)`
+      );
+    } catch (error) {
+      console.error("❌ Erreur handleValidateDay:", error);
+      Alert.alert("Erreur", "Impossible de valider la journée");
+    }
   };
 
   return (
@@ -248,16 +262,14 @@ export default function DashboardScreen() {
               Tableau de bord
             </Text>
 
-            <View style={styles.statsRow}>
-              <View style={styles.statBadge}>
-                <Ionicons name="flame" size={16} color="#FFFFFF" />
-                <Text style={styles.statValue}>{tokens}</Text>
-              </View>
+            <View style={styles.statBadge}>
+              <Ionicons name="flame" size={16} color="#FFFFFF" />
+              <Text style={styles.statValue}>{streak}</Text> ← SÉRIE
+            </View>
 
-              <View style={[styles.statBadge, styles.statBadgeStreak]}>
-                <Ionicons name="disc" size={16} color="#FFFFFF" />
-                <Text style={styles.statValue}>{streak}</Text>
-              </View>
+            <View style={[styles.statBadge, styles.statBadgeStreak]}>
+              <Ionicons name="disc" size={16} color="#FFFFFF" />
+              <Text style={styles.statValue}>{tokens}</Text> ← TOKENS
             </View>
           </View>
 

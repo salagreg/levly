@@ -26,47 +26,23 @@ export const getDashboard = async () => {
 };
 
 // ================================================================
-// Valider la journée
+// Récupérer les tâches de l'utilisateur
 // ================================================================
-export const validateDay = async () => {
+export const getTaches = async () => {
   try {
-    const token = await AsyncStorage.getItem("token"); // ✅ AsyncStorage
+    const token = await AsyncStorage.getItem("token");
 
-    const response = await axios.post(
-      `${API_BASE_URL}/validation-quotidienne`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await axios.get(`${API_BASE_URL}/taches`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log("📋 Tâches récupérées:", response.data);
+
     return response.data;
   } catch (error) {
-    console.error("Erreur validateDay:", error);
-    throw error;
-  }
-};
-
-// ================================================================
-// Toggle tâche complétée
-// ================================================================
-export const toggleTask = async (taskId) => {
-  try {
-    const token = await AsyncStorage.getItem("token"); // ✅ AsyncStorage
-
-    const response = await axios.put(
-      `${API_BASE_URL}/taches/${taskId}`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Erreur toggleTask:", error);
+    console.error("Erreur getTaches:", error);
     throw error;
   }
 };
@@ -93,28 +69,6 @@ export const createTache = async (titre) => {
     return response.data;
   } catch (error) {
     console.error("Erreur createTache:", error);
-    throw error;
-  }
-};
-
-// ================================================================
-// Récupérer les tâches de l'utilisateur
-// ================================================================
-export const getTaches = async () => {
-  try {
-    const token = await AsyncStorage.getItem("token");
-
-    const response = await axios.get(`${API_BASE_URL}/taches`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    console.log("📋 Tâches récupérées:", response.data);
-
-    return response.data;
-  } catch (error) {
-    console.error("Erreur getTaches:", error);
     throw error;
   }
 };
@@ -152,8 +106,41 @@ export const deleteTache = async (tacheId) => {
   try {
     const token = await AsyncStorage.getItem("token");
 
-    const response = await axios.delete(
-      `${API_BASE_URL}/taches/${tacheId}`,
+    const response = await axios.delete(`${API_BASE_URL}/taches/${tacheId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log("🗑️ Tâche supprimée:", response.data);
+
+    return response.data;
+  } catch (error) {
+    console.error("Erreur deleteTache:", error);
+    throw error;
+  }
+};
+
+// ================================================================
+// Valider la journée
+// ================================================================
+export const validateDay = async () => {
+  try {
+    const token = await AsyncStorage.getItem("token");
+
+    // Détection automatique du fuseau horaire
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    const url = `${API_BASE_URL}/validation/recovery`;
+
+    console.log("🔗 URL COMPLÈTE:", url);
+    console.log("🌍 Timezone:", timezone);
+    console.log("🎯 Token:", token ? "présent" : "manquant");
+    console.log("🎯 Appel API /validation/recovery...");
+
+    const response = await axios.post(
+      url,
+      { timezone },
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -161,11 +148,12 @@ export const deleteTache = async (tacheId) => {
       }
     );
 
-    console.log("🗑️ Tâche supprimée:", response.data);
+    console.log("✅ Réponse validation:", response.data);
 
     return response.data;
   } catch (error) {
-    console.error("Erreur deleteTache:", error);
+    console.error("❌ Erreur validateDay:", error);
+    console.error("❌ Détails erreur:", error.response?.data || error.message);
     throw error;
   }
 };

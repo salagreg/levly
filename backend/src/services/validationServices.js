@@ -1,414 +1,324 @@
 // ================================================================
-// Service de validation des routines quotidiennes
+// Service de validation quotidienne - ORCHESTRATEUR
 // ================================================================
 
 const Pilier = require("../models/pilier");
 const Activite = require("../models/activite");
 const Jeton = require("../models/jeton");
 const Serie = require("../models/serie");
-const StravaAPI = require("../integrations/stravaAPI");
-const SpotifyAPI = require("../integrations/spotifyAPI");
+const stravaService = require("./stravaServices");
+const spotifyService = require("./spotifyServices");
 
-class ValidationService {
-  // ================================================================
-  // Valider la journée d'un utilisateur
-  // ================================================================
-  static async validateUserDay(userId) {
-    console.log("\n🎯 VALIDATION JOURNÉE UTILISATEUR", userId);
-    console.log("═══════════════════════════════════════");
+// ================================================================
+// Valider la journée de l'utilisateur
+// ================================================================
+exports.validateDay = async (userId, timezone) => {
+  console.log("\n🎯 VALIDATION JOURNÉE UTILISATEUR", userId);
+  console.log("═══════════════════════════════════════");
 
-    try {
-      // 1. Récupérer tous les piliers de l'utilisateur
-      const piliers = await Pilier.findByUserId(userId);
+  try {
+    // ================================================================
+    // 1. Récupérer tous les piliers actifs
+    // ================================================================
+    const piliers = await Pilier.findByUserId(userId);
 
-      if (!piliers || piliers.length === 0) {
-        throw new Error("Aucun pilier connecté");
-      }
+    if (!piliers || piliers.length === 0) {
+      console.log("❌ Aucun pilier trouvé");
+      return {
+        success: false,
+        message: "Aucune application connectée",
+        validated: false,
+      };
+    }
 
-      console.log(`📊 ${piliers.length} pilier(s) trouvé(s)`);
+    const piliersActifs = piliers.filter((p) => p.pilier_actif);
+    console.log(`🧱 ${piliersActifs.length} pilier(s) actif(s) trouvé(s)`);
 
-      const results = [];
-      const today = new Date().toISOString().split("T")[0];
+    if (piliersActifs.length === 0) {
+      console.log("❌ Aucun pilier actif");
+      return {
+        success: false,
+        message: "Aucun pilier actif",
+        validated: false,
+      };
+    }
 
-      // 2. Valider chaque pilier
-      for (const pilier of piliers) {
-        // Skip si désactivé
-        if (!pilier.pilier_actif) {
-          console.log(`⏭️  Pilier ${pilier.source_externe} désactivé, ignoré`);
-          continue;
-        }
+    // ================================================================
+    // 2. Valider chaque pilier (TOUJOURS récupérer les données)
+    // ================================================================
+    const validationResults = [];
+    const today = new Date().toISOString().split("T")[0];
 
-        console.log(`\n🔍 Validation pilier: ${pilier.source_externe}`);
+    for (const pilier of piliersActifs) {
+      console.log(
+        `\n📱 Validation pilier: ${pilier.nom_pilier} (${pilier.source_externe})`
+      );
 
-        // Vérifier si déjà validé aujourd'hui
-        const dejaValide = await Activite.findByUserAndDate(
+      // Récupérer la validation existante d'aujourd'hui (si elle existe)
+      const existingActivite = await Activite.findByUserAndDate(
+        userId,
+        today,
+        pilier.id_pilier
+      );
+
+      // TOUJOURS appeler l'API pour récupérer les données en temps réel
+      let result = null;
+
+      if (pilier.source_externe === "strava") {
+        result = await stravaService.validateStrava(pilier, userId, today);
+      } else if (pilier.source_externe === "spotify") {
+        result = await spotifyService.validateSpotify(
+          pilier,
           userId,
           today,
-          pilier.id_pilier
+          timezone
         );
-
-        if (dejaValide) {
-          console.log(`  ⚠️  Déjà validé aujourd'hui, ignoré`);
-
-          results.push({
-            pilier_id: pilier.id_pilier,
-            source: pilier.source_externe,
-            nom: pilier.nom_pilier,
-            valide: dejaValide.activite_validee,
-            deja_valide: true,
-          });
-          continue;
-        }
-
-        // Valider selon la source
-        let validation = null;
-
-        switch (pilier.source_externe) {
-          case "strava":
-            validation = await this.validateStrava(pilier, userId, today);
-            break;
-
-          case "spotify":
-            validation = await this.validateSpotify(pilier, userId, today);
-            break;
-
-          default:
-            console.log(`⚠️  Source ${pilier.source_externe} non supportée`);
-        }
-
-        if (validation) {
-          results.push(validation);
-        }
+      } else {
+        console.log(`⚠️ Source ${pilier.source_externe} non supportée`);
+        continue;
       }
 
-      console.log("\n✅ VALIDATION TERMINÉE");
+      if (!result || !result.success) {
+        console.log("❌ Erreur récupération données");
+        validationResults.push({
+          pilier_id: pilier.id_pilier,
+          source: pilier.source_externe,
+          nom: pilier.nom_pilier,
+          validated: false,
+          alreadyValidated: false,
+          wasAlreadyValidated: false,
+          target: pilier.objectif_config?.duree_minutes || 30,
+          current: 0,
+        });
+        continue;
+      }
+
+      // Vérifier si le pilier était DÉJÀ validé avant cet appel
+      const wasAlreadyValidated = existingActivite?.activite_validee || false;
+
+      // Le pilier est-il validé MAINTENANT ?
+      const isValidatedNow = result.validated;
+
+      console.log(`  ⚙️ Était validé: ${wasAlreadyValidated}`);
+      console.log(`  ⚙️ Est validé maintenant: ${isValidatedNow}`);
+
+      // Mettre à jour ou créer l'activité en base
+      if (existingActivite) {
+        // Mise à jour
+        await Activite.update(existingActivite.id_activite, {
+          duree_minutes: result.current || 0,
+          nombre_episodes: result.podcasts || null,
+          activite_validee: isValidatedNow,
+        });
+        console.log("💾 Activité mise à jour en BDD");
+      } else {
+        // Création
+        await Activite.create({
+          id_utilisateur: userId,
+          id_pilier: pilier.id_pilier,
+          date_activite: today,
+          duree_minutes: result.current || 0,
+          nombre_episodes: result.podcasts || null,
+          source_externe: result.source,
+          activite_validee: isValidatedNow,
+        });
+        console.log("💾 Activité créée en BDD");
+      }
+
+      validationResults.push({
+        ...result,
+        wasAlreadyValidated, // Était validé AVANT cet appel
+        validated: isValidatedNow, // Est validé MAINTENANT
+        alreadyValidated: false, // On supprime ce flag trompeur
+      });
+    }
+
+    console.log("\n📊 Résultats validation:", validationResults);
+
+    // ================================================================
+    // 3. Compter les NOUVEAUX piliers validés
+    // ================================================================
+    const newlyValidatedPiliers = validationResults.filter(
+      (r) => r.validated && !r.wasAlreadyValidated
+    );
+
+    const newValidatedCount = newlyValidatedPiliers.length;
+    const totalPiliers = piliersActifs.length;
+
+    console.log(
+      `\n🎯 NOUVEAUX piliers validés: ${newValidatedCount}/${totalPiliers}`
+    );
+
+    // ================================================================
+    // 4. Attribution des récompenses SEULEMENT pour les NOUVEAUX
+    // ================================================================
+    let tokensEarned = 0;
+    let bonusTokens = 0;
+    let newStreak = 0;
+    let serieIncremented = false;
+
+    if (newValidatedCount === 0) {
+      // Aucun NOUVEAU pilier validé
+      console.log("\n❌ AUCUN NOUVEAU PILIER VALIDÉ");
       console.log("═══════════════════════════════════════");
 
-      // 3. Compter les piliers validés (nouveaux seulement)
-      const piliersValides = results.filter(
-        (r) => r.valide && !r.deja_valide
-      ).length;
+      // Vérifier si TOUS les piliers sont validés (même si avant)
+      const allValidatedNow = validationResults.every((r) => r.validated);
 
-      let tokensGagnes = 0;
-      let bonusTokens = 0;
-      let serieActuelle = 0;
-
-      if (piliersValides > 0) {
-        // ══════════════════════════════════════
-        // CAS 1 : Au moins 1 pilier validé
-        // ══════════════════════════════════════
-        console.log("\n💰 ATTRIBUTION DES TOKENS");
-        console.log("═══════════════════════════════════════");
-
-        // 5 tokens par pilier validé
-        for (const result of results) {
-          if (result.valide && !result.deja_valide) {
-            await Jeton.addTokens(userId, 5, `pilier_${result.source}`);
-            console.log(`  ✅ +5 tokens pour ${result.source}`);
-            tokensGagnes += 5;
-          }
+      if (!allValidatedNow) {
+        // Au moins un pilier non validé → reset série
+        const serie = await Serie.findByUserId(userId);
+        if (serie && serie.serie_actuelle > 0) {
+          await Serie.update(userId, 0);
+          console.log("🔥 Série réinitialisée à 0");
         }
-
-        // Mettre à jour la série
-        console.log("\n🔥 MISE À JOUR SÉRIE");
-        console.log("═══════════════════════════════════════");
-
-        const serie = await Serie.updateSerie(userId);
-        serieActuelle = serie.serie_actuelle;
-        console.log(`  🔥 Série actuelle: ${serieActuelle} jour(s)`);
-
-        // Vérifier les bonus de série
-        bonusTokens = await this.checkSerieBonus(userId, serieActuelle);
-        tokensGagnes += bonusTokens;
-
-        // Récupérer le nouveau solde
-        const nouveauSolde = await Jeton.getBalance(userId);
-
-        console.log(`\n  💰 Tokens de base: ${piliersValides * 5}`);
-        console.log(`  🎁 Bonus série: ${bonusTokens}`);
-        console.log(`  💰 Total gagné: ${tokensGagnes}`);
-        console.log(`  💰 Solde total: ${nouveauSolde}`);
-        console.log("═══════════════════════════════════════\n");
-
-        return {
-          validations: results,
-          tokens: {
-            gagnes: tokensGagnes,
-            bonus: bonusTokens,
-            solde_total: nouveauSolde,
-          },
-          serie: serieActuelle,
-        };
+        newStreak = 0;
       } else {
-        // ══════════════════════════════════════
-        // CAS 2 : 0 pilier validé
-        // Reset automatique le lendemain via updateSerie()
-        // ══════════════════════════════════════
-        console.log("\n💔 AUCUN PILIER VALIDÉ");
-        console.log("═══════════════════════════════════════");
-
-        const soldeActuel = await Jeton.getBalance(userId);
-        serieActuelle = await Serie.getCurrentStreak(userId);
-
-        console.log(`  ℹ️  Série actuelle: ${serieActuelle} (inchangée)`);
-        console.log("═══════════════════════════════════════\n");
-
-        return {
-          validations: results,
-          tokens: {
-            gagnes: 0,
-            bonus: 0,
-            solde_total: soldeActuel,
-          },
-          serie: serieActuelle,
-          message: "Aucune activité validée",
-        };
-      }
-    } catch (error) {
-      console.error("❌ Erreur validation:", error.message);
-      throw error;
-    }
-  }
-
-  // ================================================================
-  // Valider un pilier Strava (type: durée)
-  // ================================================================
-  static async validateStrava(pilier, userId, today) {
-    console.log("  🏃 Validation Strava...");
-
-    try {
-      // Vérifier expiration token
-      const now = Math.floor(Date.now() / 1000);
-      let accessToken = pilier.access_token;
-
-      if (now > pilier.token_expires_at) {
-        console.log("  🔄 Token expiré, renouvellement...");
-        const newTokens = await StravaAPI.refreshAccessToken(
-          pilier.refresh_token
-        );
-
-        await Pilier.update(pilier.id_pilier, {
-          access_token: newTokens.access_token,
-          refresh_token: newTokens.refresh_token,
-          token_expires_at: newTokens.expires_at,
-        });
-
-        accessToken = newTokens.access_token;
+        // Tous validés mais avant → pas de reset
+        const serie = await Serie.findByUserId(userId);
+        newStreak = serie?.serie_actuelle || 0;
+        console.log(`🔥 Série maintenue: ${newStreak} jour(s)`);
       }
 
-      // Calculer le timestamp de minuit
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-      const afterTimestamp = Math.floor(startOfDay.getTime() / 1000);
+      tokensEarned = 0;
+    } else {
+      // Au moins 1 NOUVEAU pilier validé
+      console.log("\n✅ AU MOINS 1 NOUVEAU PILIER VALIDÉ");
+      console.log("═══════════════════════════════════════");
 
-      // Récupérer activités du jour
-      const activities = await StravaAPI.getActivities(
-        accessToken,
-        afterTimestamp
-      );
+      // Attribution tokens : 5 tokens PAR pilier nouvellement validé
+      tokensEarned = newValidatedCount * 5;
 
-      console.log(`  📊 ${activities.length} activité(s) trouvée(s)`);
+      const allValidatedNow = validationResults.every((r) => r.validated);
+      const origine = allValidatedNow
+        ? "validation_complete"
+        : "validation_partielle";
 
-      // Calculer durée totale
-      const totalDuration = activities.reduce((sum, act) => {
-        return sum + Math.floor(act.moving_time / 60);
-      }, 0);
-
-      console.log(`  ⏱️  Durée totale: ${totalDuration} min`);
-
-      // Vérifier objectif
-      const config = pilier.objectif_config;
-      const objectifAtteint = totalDuration >= config.duree_minutes;
-
-      console.log(`  🎯 Objectif: ${config.duree_minutes} min`);
+      await Jeton.addTokens(userId, tokensEarned, origine);
       console.log(
-        `  ${objectifAtteint ? "✅" : "❌"} ${
-          objectifAtteint ? "VALIDÉ" : "NON VALIDÉ"
-        }`
+        `💰 Tokens attribués: +${tokensEarned} (${newValidatedCount} pilier(s) x 5)`
       );
 
-      // Enregistrer dans table activite
-      await Activite.create({
-        id_utilisateur: userId,
-        id_pilier: pilier.id_pilier,
-        date_activite: today,
-        duree_minutes: totalDuration,
-        nombre_episodes: null,
-        source_externe: "strava",
-        activite_validee: objectifAtteint,
-      });
+      // Incrémenter la série (UNE SEULE FOIS par jour)
+      console.log("\n🔥 MISE À JOUR SÉRIE");
+      console.log("═══════════════════════════════════════");
 
-      console.log("  💾 Enregistré en BDD");
-
-      return {
-        pilier_id: pilier.id_pilier,
-        source: "strava",
-        nom: pilier.nom_pilier,
-        type_validation: "duree",
-        objectif: config.duree_minutes,
-        realise: totalDuration,
-        valide: objectifAtteint,
-        activites: activities.length,
-      };
-    } catch (error) {
-      console.error("  ❌ Erreur Strava:", error.message);
-
-      await Activite.create({
-        id_utilisateur: userId,
-        id_pilier: pilier.id_pilier,
-        date_activite: today,
-        duree_minutes: 0,
-        nombre_episodes: null,
-        source_externe: "strava",
-        activite_validee: false,
-      });
-
-      return {
-        pilier_id: pilier.id_pilier,
-        source: "strava",
-        nom: pilier.nom_pilier,
-        valide: false,
-        erreur: error.message,
-      };
-    }
-  }
-
-  // ================================================================
-  // Valider un pilier Spotify (type: épisodes)
-  // ================================================================
-  static async validateSpotify(pilier, userId, today) {
-    console.log("  🎧 Validation Spotify...");
-
-    try {
-      // Vérifier expiration token
-      const now = Math.floor(Date.now() / 1000);
-      let accessToken = pilier.access_token;
-
-      if (now > pilier.token_expires_at) {
-        console.log("  🔄 Token expiré, renouvellement...");
-        const newTokens = await SpotifyAPI.refreshAccessToken(
-          pilier.refresh_token
-        );
-
-        await Pilier.update(pilier.id_pilier, {
-          access_token: newTokens.access_token,
-          refresh_token: newTokens.refresh_token,
-          token_expires_at: newTokens.expires_at,
-        });
-
-        accessToken = newTokens.access_token;
+      let serie = await Serie.findByUserId(userId);
+      if (!serie) {
+        serie = await Serie.create(userId);
       }
 
-      // Récupérer podcasts du jour
-      const allPodcasts = await SpotifyAPI.getTodayPodcasts(accessToken);
+      // Vérifier si la série a déjà été incrémentée aujourd'hui
+      const lastUpdateDate = serie.date_maj
+        ? new Date(serie.date_maj).toISOString().split("T")[0]
+        : null;
 
-      console.log(`  📊 ${allPodcasts.length} podcast(s) écouté(s)`);
+      const today = new Date().toISOString().split("T")[0];
 
-      // Filtrer par durée minimale
-      const config = pilier.objectif_config;
-      const dureeMinMs = config.duree_min_episode * 60 * 1000;
-
-      const validPodcasts = allPodcasts.filter(
-        (p) => p.duration_ms >= dureeMinMs
-      );
-
-      console.log(
-        `  📊 ${validPodcasts.length} podcast(s) valide(s) (≥ ${config.duree_min_episode} min)`
-      );
-
-      // Vérifier objectif
-      const objectifAtteint = validPodcasts.length >= config.episodes;
-
-      console.log(`  🎯 Objectif: ${config.episodes} épisode(s)`);
-      console.log(
-        `  ${objectifAtteint ? "✅" : "❌"} ${
-          objectifAtteint ? "VALIDÉ" : "NON VALIDÉ"
-        }`
-      );
-
-      // Enregistrer dans table activite
-      await Activite.create({
-        id_utilisateur: userId,
-        id_pilier: pilier.id_pilier,
-        date_activite: today,
-        duree_minutes: null,
-        nombre_episodes: validPodcasts.length,
-        source_externe: "spotify",
-        activite_validee: objectifAtteint,
-      });
-
-      console.log("  💾 Enregistré en BDD");
-
-      return {
-        pilier_id: pilier.id_pilier,
-        source: "spotify",
-        nom: pilier.nom_pilier,
-        type_validation: "episodes",
-        objectif: config.episodes,
-        realise: validPodcasts.length,
-        valide: objectifAtteint,
-        podcasts: validPodcasts.length,
-      };
-    } catch (error) {
-      console.error("  ❌ Erreur Spotify:", error.message);
-
-      await Activite.create({
-        id_utilisateur: userId,
-        id_pilier: pilier.id_pilier,
-        date_activite: today,
-        duree_minutes: null,
-        nombre_episodes: 0,
-        source_externe: "spotify",
-        activite_validee: false,
-      });
-
-      return {
-        pilier_id: pilier.id_pilier,
-        source: "spotify",
-        nom: pilier.nom_pilier,
-        valide: false,
-        erreur: error.message,
-      };
-    }
-  }
-
-  // ================================================================
-  // Vérifier et attribuer les bonus de série
-  // Bonus cumulatifs : 7j, 14j, 30j
-  // ================================================================
-  static async checkSerieBonus(userId, serieActuelle) {
-    console.log(`\n  🎁 Vérification bonus série (${serieActuelle} jours)`);
-
-    let bonusTotal = 0;
-
-    const paliers = [
-      { jours: 7, bonus: 10, label: "7 jours" },
-      { jours: 14, bonus: 20, label: "14 jours" },
-      { jours: 30, bonus: 50, label: "30 jours" },
-    ];
-
-    for (const palier of paliers) {
-      if (serieActuelle === palier.jours) {
+      if (lastUpdateDate !== today || serie.serie_actuelle === 0) {
+        // Première validation du jour → incrémenter
+        newStreak = (serie.serie_actuelle || 0) + 1;
+        await Serie.update(userId, newStreak);
+        serieIncremented = true;
+        console.log(`🔥 Série incrémentée: ${newStreak} jour(s)`);
+      } else {
+        // Déjà incrémentée aujourd'hui → pas de changement
+        newStreak = serie.serie_actuelle || 0;
         console.log(
-          `  🎉 Bonus ${palier.label} débloqué ! +${palier.bonus} tokens`
+          `🔥 Série déjà incrémentée aujourd'hui: ${newStreak} jour(s)`
         );
-
-        await Jeton.addTokens(
-          userId,
-          palier.bonus,
-          `bonus_serie_${palier.jours}j`
-        );
-
-        bonusTotal += palier.bonus;
       }
+
+      // Bonus de série (UNE SEULE FOIS par palier)
+      if (serieIncremented) {
+        bonusTokens = await checkSerieBonus(userId, newStreak);
+        if (bonusTokens > 0) {
+          tokensEarned += bonusTokens;
+        }
+      }
+
+      console.log(`\n💰 Tokens de base: ${tokensEarned - bonusTokens}`);
+      console.log(`🎁 Bonus série: ${bonusTokens}`);
+      console.log(`💰 Total gagné: ${tokensEarned}`);
     }
 
-    if (bonusTotal === 0) {
-      console.log(`  ℹ️  Pas de bonus pour ${serieActuelle} jours`);
+    // ================================================================
+    // 5. Récupérer le solde total
+    // ================================================================
+    const nouveauSolde = await Jeton.getBalance(userId);
+    console.log(`💰 Solde total: ${nouveauSolde}`);
+    console.log("═══════════════════════════════════════\n");
+
+    // ================================================================
+    // 6. Retourner le résultat complet
+    // ================================================================
+    const allValidatedNow = validationResults.every((r) => r.validated);
+    const totalValidatedNow = validationResults.filter(
+      (r) => r.validated
+    ).length;
+
+    let message = "";
+    if (totalValidatedNow === 0) {
+      message = "Aucun objectif atteint. Continue tes efforts ! 💪";
+    } else if (allValidatedNow) {
+      message = "Bravo ! Tous tes objectifs sont atteints ! 🎉";
+    } else {
+      message = `Bien joué ! ${totalValidatedNow}/${totalPiliers} objectifs atteints ! 🔥`;
     }
 
-    return bonusTotal;
+    return {
+      success: true,
+      validated: allValidatedNow,
+      validatedCount: totalValidatedNow,
+      newlyValidatedCount: newValidatedCount, // Nouveaux validés
+      totalPiliers,
+      tokensEarned,
+      bonusTokens,
+      newStreak,
+      serieIncremented,
+      nouveauSolde,
+      piliers: validationResults,
+      message,
+    };
+  } catch (error) {
+    console.error("❌ Erreur validateDay:", error);
+    throw error;
   }
-}
+};
 
-module.exports = ValidationService;
+// ================================================================
+// Vérifier et attribuer les bonus de série
+// ================================================================
+async function checkSerieBonus(userId, serieActuelle) {
+  console.log(`\n🎁 Vérification bonus série (${serieActuelle} jours)`);
+
+  let bonusTotal = 0;
+
+  const paliers = [
+    { jours: 7, bonus: 10, label: "7 jours" },
+    { jours: 14, bonus: 20, label: "14 jours" },
+    { jours: 30, bonus: 50, label: "30 jours" },
+  ];
+
+  for (const palier of paliers) {
+    if (serieActuelle === palier.jours) {
+      console.log(
+        `🎉 Bonus ${palier.label} débloqué ! +${palier.bonus} tokens`
+      );
+
+      await Jeton.addTokens(
+        userId,
+        palier.bonus,
+        `bonus_serie_${palier.jours}j`
+      );
+
+      bonusTotal += palier.bonus;
+    }
+  }
+
+  if (bonusTotal === 0) {
+    console.log(`ℹ️ Pas de bonus pour ${serieActuelle} jours`);
+  }
+
+  return bonusTotal;
+}

@@ -9,10 +9,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   Dimensions,
-  KeyboardAvoidingView,
-  Platform,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -20,112 +19,128 @@ import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BackButton from "../components/common/BackButton";
+import { getConnectionStatus } from "../services/syncService";
+import { updatePilierDuration } from "../services/durationService";
 
 const { width } = Dimensions.get("window");
 
 export default function DurationScreen() {
-  // État des connexions (récupéré de l'écran précédent)
+  // État des connexions
   const [spotifyConnected, setSpotifyConnected] = useState(false);
   const [stravaConnected, setStravaConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Durées des applications
   const [spotifyDuration, setSpotifyDuration] = useState(30);
   const [stravaDuration, setStravaDuration] = useState(30);
 
-  // Tâches manuelles
-  const [tasks, setTasks] = useState<string[]>([]);
-  const [newTaskText, setNewTaskText] = useState("");
-  const [showAddTask, setShowAddTask] = useState(false);
-
-  // Charger les connexions et tâches au montage
+  // Charger les connexions depuis la DB
   useEffect(() => {
-    loadData();
+    loadConnectionStatus();
   }, []);
 
-  const loadData = async () => {
+  const loadConnectionStatus = async () => {
     try {
-      // Charger l'état des connexions
-      const spotify = await AsyncStorage.getItem("spotifyConnected");
-      const strava = await AsyncStorage.getItem("stravaConnected");
+      setLoading(true);
 
-      setSpotifyConnected(spotify === "true");
-      setStravaConnected(strava === "true");
+      // Récupérer le statut des connexions depuis la DB
+      const status = await getConnectionStatus();
 
-      // Charger les tâches
-      const savedTasks = await AsyncStorage.getItem("manualTasks");
-      if (savedTasks) {
-        setTasks(JSON.parse(savedTasks));
+      console.log("📱 Statut connexions:", status);
+
+      setSpotifyConnected(status.spotify || false);
+      setStravaConnected(status.strava || false);
+
+      // Charger les durées depuis AsyncStorage (backup local)
+      const savedSpotifyDuration = await AsyncStorage.getItem(
+        "spotifyDuration"
+      );
+      const savedStravaDuration = await AsyncStorage.getItem("stravaDuration");
+
+      if (savedSpotifyDuration) {
+        setSpotifyDuration(parseInt(savedSpotifyDuration));
+      }
+
+      if (savedStravaDuration) {
+        setStravaDuration(parseInt(savedStravaDuration));
       }
     } catch (error) {
-      console.error("Erreur chargement données:", error);
-    }
-  };
-
-  const handleAddTask = async () => {
-    if (newTaskText.trim()) {
-      const updatedTasks = [...tasks, newTaskText.trim()];
-      setTasks(updatedTasks);
-      setNewTaskText("");
-      setShowAddTask(false);
-
-      // Sauvegarder dans AsyncStorage
-      try {
-        await AsyncStorage.setItem("manualTasks", JSON.stringify(updatedTasks));
-      } catch (error) {
-        console.error("Erreur sauvegarde tâche:", error);
-      }
-    }
-  };
-
-  const handleRemoveTask = async (index: number) => {
-    const updatedTasks = tasks.filter((_, i) => i !== index);
-    setTasks(updatedTasks);
-
-    // Sauvegarder dans AsyncStorage
-    try {
-      await AsyncStorage.setItem("manualTasks", JSON.stringify(updatedTasks));
-    } catch (error) {
-      console.error("Erreur suppression tâche:", error);
+      console.error("❌ Erreur chargement statut:", error);
+      Alert.alert(
+        "Erreur",
+        "Impossible de charger les connexions. Vérifiez votre connexion."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleFinish = async () => {
-    // Sauvegarder les durées
     try {
-      await AsyncStorage.setItem("spotifyDuration", spotifyDuration.toString());
-      await AsyncStorage.setItem("stravaDuration", stravaDuration.toString());
-    } catch (error) {
-      console.error("Erreur sauvegarde durées:", error);
-    }
+      console.log("💾 Sauvegarde des durées...");
 
-    // Naviguer vers le dashboard
-    router.replace("/(tabs)");
+      // Sauvegarder les durées en base de données
+      if (spotifyConnected) {
+        await updatePilierDuration("spotify", spotifyDuration);
+        console.log("✅ Durée Spotify sauvegardée:", spotifyDuration);
+      }
+
+      if (stravaConnected) {
+        await updatePilierDuration("strava", stravaDuration);
+        console.log("✅ Durée Strava sauvegardée:", stravaDuration);
+      }
+
+      // Sauvegarder aussi dans AsyncStorage (backup local)
+      await AsyncStorage.setItem(
+        "spotifyDuration",
+        spotifyDuration.toString()
+      );
+      await AsyncStorage.setItem("stravaDuration", stravaDuration.toString());
+
+      console.log("✅ Durées sauvegardées avec succès !");
+
+      // Naviguer vers le dashboard
+      router.replace("/(tabs)");
+    } catch (error) {
+      console.error("❌ Erreur sauvegarde durées:", error);
+      Alert.alert(
+        "Erreur",
+        "Impossible de sauvegarder les durées. Vérifiez votre connexion."
+      );
+    }
   };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-      >
-        {/* Header avec back button + titre */}
-        <View style={styles.header}>
-          <BackButton onPress={() => router.back()} />
-          <Text
-            style={styles.headerTitle}
-            adjustsFontSizeToFit
-            numberOfLines={1}
-          >
-            Définir les durées
-          </Text>
-          <View style={styles.headerSpacer} />
-        </View>
-
-        <ScrollView
-          contentContainerStyle={styles.container}
-          keyboardShouldPersistTaps="handled"
+      {/* Header avec back button + titre */}
+      <View style={styles.header}>
+        <BackButton onPress={() => router.push("/sync")} />
+        <Text
+          style={styles.headerTitle}
+          adjustsFontSizeToFit
+          numberOfLines={1}
         >
+          Définir les durées
+        </Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#5B7EBD" />
+          <Text style={styles.loadingText}>Chargement...</Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.container}>
+          {/* Message informatif */}
+          <View style={styles.infoCard}>
+            <Ionicons name="information-circle" size={24} color="#5B7EBD" />
+            <Text style={styles.infoText}>
+              Définissez la durée quotidienne que vous souhaitez consacrer à
+              chaque activité
+            </Text>
+          </View>
+
           {/* Section Applications connectées */}
           {(spotifyConnected || stravaConnected) && (
             <View style={styles.section}>
@@ -155,56 +170,25 @@ export default function DurationScreen() {
             </View>
           )}
 
-          {/* Section Tâches non trackées */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tâches non trackées</Text>
-
-            {/* Liste des tâches */}
-            {tasks.map((task, index) => (
-              <View key={index} style={styles.taskCard}>
-                <Text style={styles.taskText}>{task}</Text>
-                <TouchableOpacity onPress={() => handleRemoveTask(index)}>
-                  <Ionicons name="close-circle" size={24} color="#EF4444" />
-                </TouchableOpacity>
-              </View>
-            ))}
-
-            {/* Input ajout tâche */}
-            {showAddTask && (
-              <View style={styles.addTaskInput}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Nom de la tâche"
-                  value={newTaskText}
-                  onChangeText={setNewTaskText}
-                  autoFocus
-                  onSubmitEditing={handleAddTask}
-                  returnKeyType="done"
-                />
-                <TouchableOpacity onPress={handleAddTask}>
-                  <Ionicons name="checkmark-circle" size={32} color="#10B981" />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Bouton Ajouter une tâche */}
-            {!showAddTask && (
-              <TouchableOpacity
-                style={styles.addTaskButton}
-                onPress={() => setShowAddTask(true)}
-              >
-                <Ionicons name="add-circle-outline" size={24} color="#5B7EBD" />
-                <Text style={styles.addTaskButtonText}>Ajouter une tâche</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          {/* Message si aucune app connectée */}
+          {!spotifyConnected && !stravaConnected && (
+            <View style={styles.emptyState}>
+              <Ionicons name="alert-circle-outline" size={64} color="#D1D5DB" />
+              <Text style={styles.emptyText}>
+                Aucune application connectée
+              </Text>
+              <Text style={styles.emptySubtext}>
+                Retournez à l'écran précédent pour connecter Spotify ou Strava
+              </Text>
+            </View>
+          )}
 
           {/* Bouton Terminé */}
           <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
             <Text style={styles.finishButtonText}>Terminé</Text>
           </TouchableOpacity>
         </ScrollView>
-      </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   );
 }
@@ -260,6 +244,10 @@ function AppDurationCard({
           maximumTrackTintColor="#E5E7EB"
           thumbTintColor={iconColor}
         />
+        <View style={styles.sliderMinMax}>
+          <Text style={styles.sliderMinMaxText}>10 min</Text>
+          <Text style={styles.sliderMinMaxText}>60 min</Text>
+        </View>
       </View>
     </View>
   );
@@ -273,9 +261,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-  },
-  keyboardView: {
-    flex: 1,
   },
   header: {
     flexDirection: "row",
@@ -295,10 +280,35 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 40,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#6B7280",
+  },
   container: {
     padding: 20,
     paddingTop: 10,
     paddingBottom: 40,
+  },
+  infoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EEF2FF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#1B3A6B",
+    marginLeft: 12,
+    lineHeight: 20,
   },
   section: {
     marginBottom: 30,
@@ -357,54 +367,31 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 40,
   },
-  taskCard: {
+  sliderMinMax: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#FAFAFA",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    marginTop: 4,
   },
-  taskText: {
-    fontSize: 16,
-    color: "#1B3A6B",
-    flex: 1,
+  sliderMinMaxText: {
+    fontSize: 12,
+    color: "#9CA3AF",
   },
-  addTaskInput: {
-    flexDirection: "row",
+  emptyState: {
     alignItems: "center",
-    backgroundColor: "#FAFAFA",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#5B7EBD",
+    paddingVertical: 60,
   },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: "#1B3A6B",
-    paddingRight: 12,
-  },
-  addTaskButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderStyle: "dashed",
-  },
-  addTaskButtonText: {
-    fontSize: 16,
+  emptyText: {
+    fontSize: 18,
     fontWeight: "600",
-    color: "#5B7EBD",
-    marginLeft: 8,
+    color: "#6B7280",
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    marginTop: 8,
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
   finishButton: {
     backgroundColor: "#5B7EBD",

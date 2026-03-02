@@ -10,17 +10,28 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Alert,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  GestureHandlerRootView,
+  Swipeable,
+} from "react-native-gesture-handler";
 import quotes from "../data/quotes.json";
 import {
   getDashboard,
+  getTaches,
+  toggleTache,
+  createTache,
+  deleteTache,
   validateDay,
-  toggleTask,
 } from "../services/dashboardService";
-import { Alert } from "react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -32,6 +43,11 @@ export default function DashboardScreen() {
   const [apps, setApps] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // États pour le modal d'ajout de tâche
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [creatingTask, setCreatingTask] = useState(false);
 
   // Charger les données au montage du composant
   useEffect(() => {
@@ -45,11 +61,24 @@ export default function DashboardScreen() {
       setLoading(true);
       const data = await getDashboard();
 
-      // Mettre à jour les états avec les données reçues
+      // Mettre à jour les tokens, streak et apps
       setTokens(data.tokens || 0);
       setStreak(data.streak || 0);
       setApps(data.apps || []);
-      setTasks(data.tasks || []);
+
+      // ✅ Charger les tâches (déjà supprimées par le CRON si nouvelle journée)
+      const tachesData = await getTaches();
+
+      // Mapper le format
+      const mappedTasks = tachesData.map((tache: any) => ({
+        id: tache.id_tache,
+        text: tache.titre,
+        completed: tache.completee,
+        category: "Personnel",
+      }));
+
+      setTasks(mappedTasks);
+      console.log("✅ Tâches chargées:", mappedTasks.length);
     } catch (error) {
       console.error("Erreur chargement dashboard:", error);
       Alert.alert(
@@ -62,10 +91,6 @@ export default function DashboardScreen() {
   };
 
   // Charger la citation du jour
-  useEffect(() => {
-    loadQuoteOfTheDay();
-  }, []);
-
   const loadQuoteOfTheDay = () => {
     const dayOfYear = Math.floor(
       (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) /
@@ -75,31 +100,24 @@ export default function DashboardScreen() {
     setQuote(quotes[quoteIndex]);
   };
 
-  const handleValidateDay = async () => {
-    try {
-      await validateDay();
-
-      // Recharger les données après validation
-      await loadDashboardData();
-
-      Alert.alert("Succès", "Journée validée ! 🎉");
-    } catch (error) {
-      console.error("Erreur validation:", error);
-      Alert.alert("Erreur", "Impossible de valider la journée");
-    }
-  };
-
+  // Cocher/décocher une tâche
   const handleToggleTask = async (taskId: number) => {
     try {
-      // Optimistic update (mise à jour immédiate de l'UI)
+      const currentTask = tasks.find((task) => task.id === taskId);
+      if (!currentTask) return;
+
+      const newCompletedState = !currentTask.completed;
+
+      // Optimistic update
       setTasks((prev) =>
         prev.map((task) =>
-          task.id === taskId ? { ...task, completed: !task.completed } : task
+          task.id === taskId ? { ...task, completed: newCompletedState } : task
         )
       );
 
       // Appel API
-      await toggleTask(taskId);
+      await toggleTache(taskId, newCompletedState);
+      console.log("✅ Tâche mise à jour:", taskId, newCompletedState);
     } catch (error) {
       console.error("Erreur toggle task:", error);
 
@@ -114,155 +132,346 @@ export default function DashboardScreen() {
     }
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      {/* BLOC FIXE */}
-      <View style={styles.fixedHeader}>
-        {/* Titre + Stats sur la même ligne */}
-        <View style={styles.topRow}>
-          {/* Titre à gauche */}
-          <Text
-            style={styles.headerTitle}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-          >
-            Tableau de bord
-          </Text>
+  // Ouvrir le modal d'ajout
+  const handleOpenAddModal = () => {
+    setNewTaskTitle("");
+    setModalVisible(true);
+  };
 
-          {/* Stats à droite */}
-          <View style={styles.statsRow}>
-            {/* Tokens */}
+  // Créer une nouvelle tâche
+  const handleCreateTask = async () => {
+    if (!newTaskTitle.trim()) {
+      Alert.alert("Erreur", "Veuillez saisir un titre pour la tâche");
+      return;
+    }
+
+    try {
+      setCreatingTask(true);
+      console.log("➕ Création tâche:", newTaskTitle);
+
+      // Appel API
+      await createTache(newTaskTitle.trim());
+
+      // Recharger les tâches
+      await loadDashboardData();
+
+      // Fermer le modal
+      setModalVisible(false);
+      setNewTaskTitle("");
+
+      Alert.alert("Succès", "Tâche ajoutée ! 🎉");
+    } catch (error) {
+      console.error("Erreur création tâche:", error);
+      Alert.alert("Erreur", "Impossible de créer la tâche");
+    } finally {
+      setCreatingTask(false);
+    }
+  };
+
+  // Supprimer une tâche
+  const handleDeleteTask = async (taskId: number) => {
+    Alert.alert(
+      "Supprimer la tâche",
+      "Êtes-vous sûr de vouloir supprimer cette tâche ?",
+      [
+        {
+          text: "Annuler",
+          style: "cancel",
+        },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              console.log("🗑️ Suppression tâche:", taskId);
+
+              // Optimistic update
+              setTasks((prev) => prev.filter((task) => task.id !== taskId));
+
+              // Appel API
+              await deleteTache(taskId);
+
+              Alert.alert("Succès", "Tâche supprimée ! 🗑️");
+            } catch (error) {
+              console.error("Erreur suppression tâche:", error);
+
+              // Rollback
+              await loadDashboardData();
+
+              Alert.alert("Erreur", "Impossible de supprimer la tâche");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Bouton de suppression (affiché lors du swipe)
+  const renderRightActions = (progress: any, dragX: any, taskId: number) => {
+    const scale = dragX.interpolate({
+      inputRange: [-80, 0],
+      outputRange: [1, 0],
+      extrapolate: "clamp",
+    });
+
+    return (
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => handleDeleteTask(taskId)}
+      >
+        <Animated.View style={{ transform: [{ scale }] }}>
+          <Ionicons name="trash" size={24} color="#FFFFFF" />
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Valider la journée
+  const handleValidateDay = async () => {
+    try {
+      const response = await validateDay();
+
+      // IMPORTANT : Recharger TOUTES les données du dashboard
+      await loadDashboardData();
+
+      Alert.alert(
+        response.data.journee_complete ? "Bravo ! 🎉" : "Bien joué ! 💪",
+        `${response.data.piliers_valides}/${response.data.total_piliers} objectifs atteints\n\n` +
+          `💰 Tokens gagnés : +${response.data.tokens_gagnes}\n` +
+          `💰 Solde total : ${response.data.solde_tokens}\n` +
+          `🔥 Série : ${response.data.serie} jour(s)`
+      );
+    } catch (error) {
+      console.error("❌ Erreur handleValidateDay:", error);
+      Alert.alert("Erreur", "Impossible de valider la journée");
+    }
+  };
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        {/* BLOC FIXE */}
+        <View style={styles.fixedHeader}>
+          {/* Titre + Stats */}
+          <View style={styles.topRow}>
+            <Text
+              style={styles.headerTitle}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              Tableau de bord
+            </Text>
+
             <View style={styles.statBadge}>
               <Ionicons name="flame" size={16} color="#FFFFFF" />
-              <Text style={styles.statValue}>{tokens}</Text>
+              <Text style={styles.statValue}>{streak}</Text> ← SÉRIE
             </View>
 
-            {/* Série */}
             <View style={[styles.statBadge, styles.statBadgeStreak]}>
               <Ionicons name="disc" size={16} color="#FFFFFF" />
-              <Text style={styles.statValue}>{streak}</Text>
+              <Text style={styles.statValue}>{tokens}</Text> ← TOKENS
             </View>
           </View>
-        </View>
 
-        {/* Citation du jour */}
-        <View style={styles.quoteContainer}>
-          <Text style={styles.quoteText}>"{quote.text}"</Text>
-          <Text style={styles.quoteAuthor}>— {quote.author}</Text>
-        </View>
-      </View>
-
-      {/* SCROLLABLE */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Applications connectées */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="apps" size={22} color="#1B3A6B" />
-            <Text style={styles.sectionTitle}>Applications connectées</Text>
+          {/* Citation */}
+          <View style={styles.quoteContainer}>
+            <Text style={styles.quoteText}>"{quote.text}"</Text>
+            <Text style={styles.quoteAuthor}>— {quote.author}</Text>
           </View>
+        </View>
 
-          {apps.map((app, index) => (
-            <View key={index} style={styles.appCard}>
-              {/* Header */}
-              <View style={styles.appHeader}>
-                <View style={styles.appLeft}>
+        {/* SCROLLABLE */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Applications connectées */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="apps" size={22} color="#1B3A6B" />
+              <Text style={styles.sectionTitle}>Applications connectées</Text>
+            </View>
+
+            {apps.map((app, index) => (
+              <View key={index} style={styles.appCard}>
+                <View style={styles.appHeader}>
+                  <View style={styles.appLeft}>
+                    <View
+                      style={[
+                        styles.appIcon,
+                        { backgroundColor: app.iconColor + "15" },
+                      ]}
+                    >
+                      <Ionicons
+                        name={app.icon as any}
+                        size={24}
+                        color={app.iconColor}
+                      />
+                    </View>
+                    <Text style={styles.appName}>{app.name}</Text>
+                  </View>
+                  <Text style={styles.appTime}>
+                    {app.current}/{app.target} min
+                  </Text>
+                </View>
+
+                <View style={styles.progressBarContainer}>
                   <View
                     style={[
-                      styles.appIcon,
-                      { backgroundColor: app.iconColor + "15" },
+                      styles.progressBar,
+                      {
+                        width: `${Math.min(
+                          (app.current / app.target) * 100,
+                          100
+                        )}%`,
+                        backgroundColor: app.iconColor,
+                      },
                     ]}
-                  >
-                    <Ionicons
-                      name={app.icon as any}
-                      size={24}
-                      color={app.iconColor}
-                    />
-                  </View>
-                  <Text style={styles.appName}>{app.name}</Text>
+                  />
                 </View>
-                <Text style={styles.appTime}>
-                  {app.current}/{app.target} min
-                </Text>
               </View>
+            ))}
 
-              {/* Barre de progression */}
-              <View style={styles.progressBarContainer}>
-                <View
-                  style={[
-                    styles.progressBar,
-                    {
-                      width: `${Math.min(
-                        (app.current / app.target) * 100,
-                        100
-                      )}%`,
-                      backgroundColor: app.iconColor,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-          ))}
-
-          {/* Bouton Valider ma journée */}
-          <TouchableOpacity
-            style={styles.validateButton}
-            onPress={handleValidateDay}
-          >
-            <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-            <Text style={styles.validateButtonText}>Valider ma journée</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Séparateur visuel */}
-        <View style={styles.separator} />
-
-        {/* Tâches du jour */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="checkbox" size={22} color="#1B3A6B" />
-            <Text style={styles.sectionTitle}>Tâches du jour</Text>
+            {/* Bouton Valider */}
+            <TouchableOpacity
+              style={styles.validateButton}
+              onPress={handleValidateDay}
+            >
+              <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+              <Text style={styles.validateButtonText}>Valider ma journée</Text>
+            </TouchableOpacity>
           </View>
 
-          {tasks.map((task) => (
-            <TouchableOpacity
-              key={task.id}
-              style={styles.taskCard}
-              onPress={() => handleToggleTask(task.id)}
-              activeOpacity={0.7}
-            >
-              {/* Checkbox */}
-              <View
-                style={[
-                  styles.checkbox,
-                  task.completed && styles.checkboxCompleted,
-                ]}
-              >
-                {task.completed && (
-                  <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-                )}
-              </View>
+          {/* Séparateur */}
+          <View style={styles.separator} />
 
-              {/* Contenu */}
-              <View style={styles.taskContent}>
-                <Text
-                  style={[
-                    styles.taskText,
-                    task.completed && styles.taskTextCompleted,
-                  ]}
-                >
-                  {task.text}
+          {/* Tâches du jour */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="checkbox" size={22} color="#1B3A6B" />
+              <Text style={styles.sectionTitle}>Tâches du jour</Text>
+
+              {/* Bouton + pour ajouter */}
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={handleOpenAddModal}
+              >
+                <Ionicons name="add-circle" size={28} color="#5B7EBD" />
+              </TouchableOpacity>
+            </View>
+
+            {loading ? (
+              <Text style={styles.loadingText}>Chargement...</Text>
+            ) : tasks.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="checkmark-done" size={48} color="#D1D5DB" />
+                <Text style={styles.emptyText}>
+                  Aucune tâche pour aujourd'hui
                 </Text>
-                <Text style={styles.taskCategory}>{task.category}</Text>
+                <Text style={styles.emptySubtext}>
+                  Appuyez sur + pour ajouter une tâche
+                </Text>
               </View>
+            ) : (
+              tasks.map((task) => (
+                <Swipeable
+                  key={task.id}
+                  renderRightActions={(progress, dragX) =>
+                    renderRightActions(progress, dragX, task.id)
+                  }
+                  overshootRight={false}
+                >
+                  <TouchableOpacity
+                    style={styles.taskCard}
+                    onPress={() => handleToggleTask(task.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      style={[
+                        styles.checkbox,
+                        task.completed && styles.checkboxCompleted,
+                      ]}
+                    >
+                      {task.completed && (
+                        <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                      )}
+                    </View>
+
+                    <View style={styles.taskContent}>
+                      <Text
+                        style={[
+                          styles.taskText,
+                          task.completed && styles.taskTextCompleted,
+                        ]}
+                      >
+                        {task.text}
+                      </Text>
+                      <Text style={styles.taskCategory}>{task.category}</Text>
+                    </View>
+                  </TouchableOpacity>
+                </Swipeable>
+              ))
+            )}
+          </View>
+        </ScrollView>
+
+        {/* Modal d'ajout de tâche */}
+        <Modal
+          visible={modalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.modalOverlay}
+          >
+            <TouchableOpacity
+              style={styles.modalBackdrop}
+              activeOpacity={1}
+              onPress={() => setModalVisible(false)}
+            >
+              <TouchableOpacity
+                style={styles.modalContent}
+                activeOpacity={1}
+                onPress={(e) => e.stopPropagation()}
+              >
+                <Text style={styles.modalTitle}>Nouvelle tâche</Text>
+
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex: Faire la vaisselle"
+                  value={newTaskTitle}
+                  onChangeText={setNewTaskTitle}
+                  autoFocus
+                  maxLength={100}
+                />
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setModalVisible(false)}
+                  >
+                    <Text style={styles.cancelButtonText}>Annuler</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.createButton]}
+                    onPress={handleCreateTask}
+                    disabled={creatingTask}
+                  >
+                    <Text style={styles.createButtonText}>
+                      {creatingTask ? "Création..." : "Ajouter"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
             </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+          </KeyboardAvoidingView>
+        </Modal>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
 
@@ -361,6 +570,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1B3A6B",
     marginLeft: 10,
+    flex: 1,
+  },
+  addButton: {
+    padding: 4,
   },
   appCard: {
     backgroundColor: "#FFFFFF",
@@ -436,6 +649,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#E5E7EB",
     marginVertical: 24,
   },
+  loadingText: {
+    textAlign: "center",
+    color: "#6B7280",
+    fontSize: 16,
+    marginTop: 20,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    marginTop: 8,
+  },
   taskCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -478,5 +712,79 @@ const styles = StyleSheet.create({
   taskCategory: {
     fontSize: 13,
     color: "#6B7280",
+  },
+  deleteButton: {
+    backgroundColor: "#EF4444",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 80,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalBackdrop: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 24,
+    width: width - 40,
+    maxWidth: 400,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1B3A6B",
+    marginBottom: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: "#1B3A6B",
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  cancelButton: {
+    backgroundColor: "#F3F4F6",
+  },
+  cancelButtonText: {
+    color: "#6B7280",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  createButton: {
+    backgroundColor: "#5B7EBD",
+  },
+  createButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

@@ -96,6 +96,50 @@ const getMe = (req, res) => {
   });
 };
 
+// ================================================================
+// Générer un token OAuth temporaire pour connexion apps externes
+// ================================================================
+const generateOAuthToken = async (req, res) => {
+  console.log("🔑 generateOAuthToken appelé");
+
+  try {
+    const userId = req.user?.userId || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Utilisateur non authentifié",
+      });
+    }
+
+    console.log("👤 Génération token OAuth pour userId:", userId);
+
+    // Générer un token JWT temporaire (valide 5 minutes)
+    const jwt = require("jsonwebtoken");
+    const oauthToken = jwt.sign(
+      {
+        userId: userId,
+        type: "oauth",
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "5m" }
+    );
+
+    console.log("✅ Token OAuth généré:", oauthToken.substring(0, 30) + "...");
+
+    res.status(200).json({
+      success: true,
+      oauthToken: oauthToken,
+    });
+  } catch (error) {
+    console.error("❌ Erreur génération token OAuth:", error);
+    res.status(500).json({
+      success: false,
+      message: "Erreur lors de la génération du token",
+    });
+  }
+};
+
 // ===============================================================
 // Export des fonctions pour utilisation dans les routes
 // ===============================================================
@@ -103,4 +147,5 @@ module.exports = {
   register,
   login,
   getMe,
+  generateOAuthToken,
 };

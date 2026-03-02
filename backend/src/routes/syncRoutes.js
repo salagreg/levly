@@ -1,14 +1,14 @@
 // ================================================================
-// Routes Dashboard
+// Routes Sync
 // ================================================================
 
 const express = require("express");
 const router = express.Router();
 
-const dashboardController = require("../controllers/dashboardControllers");
+const syncController = require("../controllers/syncControllers");
 const authMiddleware = require("../middlewares/authMiddleware");
 
-// GET /api/dashboard
-router.get("/", authMiddleware, dashboardController.getDashboard);
+// GET /api/sync/status
+router.get("/status", authMiddleware, syncController.getStatus);
 
 module.exports = router;

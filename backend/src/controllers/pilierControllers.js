@@ -2,14 +2,13 @@
 // Contrôleur pour la gestion des piliers de l'utilisateur
 // ===============================================================
 
-const pilierServices = require('../services/pilierServices');
+const PilierService = require("../services/pilierServices");
 
 // ===============================================================
 // Contient les fonctions de contrôle pour les routes liées aux piliers
 // ==============================================================
 
 class PilierControllers {
-  
   /**
    * Connecter une application externe
    * POST /api/piliers
@@ -20,18 +19,17 @@ class PilierControllers {
       const userId = req.user.userId;
       const appData = req.body;
 
-      const pilier = await pilierServices.connectApp(userId, appData);
+      const pilier = await PilierService.connectApp(userId, appData);
 
       res.status(201).json({
         success: true,
-        message: 'Application synchronisée avec succès',
-        data: pilier
+        message: "Application synchronisée avec succès",
+        data: pilier,
       });
-
     } catch (error) {
       res.status(400).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -44,17 +42,16 @@ class PilierControllers {
     try {
       const userId = req.user.userId;
 
-      const piliers = await pilierServices.getUserApps(userId);
+      const piliers = await PilierService.getUserApps(userId);
 
       res.status(200).json({
         success: true,
-        data: piliers
+        data: piliers,
       });
-
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Erreur lors de la récupération des applications'
+        message: "Erreur lors de la récupération des applications",
       });
     }
   }
@@ -70,29 +67,69 @@ class PilierControllers {
       const pilierId = req.params.id;
       const { duree_objectif_minutes } = req.body;
 
-      const pilier = await pilierServices.updateDureeObjectif(
-        pilierId, 
-        userId, 
+      const pilier = await PilierService.updateDureeObjectif(
+        pilierId,
+        userId,
         duree_objectif_minutes
       );
 
       res.status(200).json({
         success: true,
-        message: 'Durée objectif mise à jour',
-        data: pilier
+        message: "Durée objectif mise à jour",
+        data: pilier,
       });
-
     } catch (error) {
-      if (error.message.includes('introuvable') || error.message.includes('autorisé')) {
+      if (
+        error.message.includes("introuvable") ||
+        error.message.includes("autorisé")
+      ) {
         return res.status(404).json({
           success: false,
-          message: error.message
+          message: error.message,
         });
       }
 
       res.status(400).json({
         success: false,
-        message: error.message
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Mettre à jour la durée d'un pilier (écran Définir durées)
+   * PUT /api/piliers/duration
+   * Body: { source, duration }
+   */
+  static async updateDuration(req, res) {
+    console.log("⏱️⏱️⏱️ CONTROLLER updateDuration appelé !");
+
+    try {
+      const userId = req.user?.userId || req.user?.id;
+      const { source, duration } = req.body;
+
+      console.log("👤 userId:", userId);
+      console.log("📱 source:", source);
+      console.log("⏱️ duration:", duration);
+
+      if (!source || !duration) {
+        return res.status(400).json({
+          message: "Les champs 'source' et 'duration' sont obligatoires",
+        });
+      }
+
+      const pilier = await PilierService.updateDuration(
+        userId,
+        source,
+        duration
+      );
+
+      res.status(200).json(pilier);
+    } catch (error) {
+      console.error("Erreur updateDuration:", error);
+      res.status(500).json({
+        message: "Erreur lors de la mise à jour de la durée",
+        error: error.message,
       });
     }
   }
@@ -106,24 +143,26 @@ class PilierControllers {
       const userId = req.user.userId;
       const pilierId = req.params.id;
 
-      await pilierServices.disconnectApp(pilierId, userId);
+      await PilierService.disconnectApp(pilierId, userId);
 
       res.status(200).json({
         success: true,
-        message: 'Application déconnectée avec succès'
+        message: "Application déconnectée avec succès",
       });
-
     } catch (error) {
-      if (error.message.includes('introuvable') || error.message.includes('autorisé')) {
+      if (
+        error.message.includes("introuvable") ||
+        error.message.includes("autorisé")
+      ) {
         return res.status(404).json({
           success: false,
-          message: error.message
+          message: error.message,
         });
       }
 
       res.status(500).json({
         success: false,
-        message: 'Erreur lors de la déconnexion'
+        message: "Erreur lors de la déconnexion",
       });
     }
   }

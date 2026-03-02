@@ -77,6 +77,44 @@ class PilierService {
     });
   }
 
+  // ================================================================
+  // Mettre à jour la durée d'un pilier (pour l'écran Définir durées)
+  // ================================================================
+  static async updateDuration(userId, source, duration) {
+    try {
+      console.log("⏱️ updateDuration:", { userId, source, duration });
+
+      // Vérifier que la durée est valide
+      if (duration < 10 || duration > 60) {
+        throw new Error("La durée doit être entre 10 et 60 minutes");
+      }
+
+      // Trouver le pilier de l'utilisateur
+      const pilier = await Pilier.findByUserAndSource(userId, source);
+
+      if (!pilier) {
+        throw new Error(`Pilier ${source} non trouvé pour cet utilisateur`);
+      }
+
+      // Mettre à jour la durée dans objectif_config
+      const updatedConfig = {
+        ...pilier.objectif_config,
+        duree_minutes: duration,
+      };
+
+      const updatedPilier = await Pilier.update(pilier.id_pilier, {
+        objectif_config: updatedConfig,
+      });
+
+      console.log("✅ Durée mise à jour:", updatedPilier);
+
+      return updatedPilier;
+    } catch (error) {
+      console.error("❌ Erreur updateDuration:", error);
+      throw error;
+    }
+  }
+
   // Déconnecter une application (suppression + révocation OAuth)
   static async disconnectApp(pilierId, userId) {
     const pilier = await this.verifyOwnership(pilierId, userId);

@@ -54,6 +54,7 @@ CREATE TABLE serie (
   id_utilisateur INT UNIQUE NOT NULL,
   serie_actuelle INT NOT NULL,
   derniere_validation DATE;
+  date_maj TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
   -- Contraintes de clés étrangères
   FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
@@ -70,9 +71,31 @@ CREATE TABLE jeton (
   FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
 );
 
+-- ================================================================
+-- Table : tache (tâches manuelles quotidiennes)
+-- ================================================================
+CREATE TABLE tache (
+  id_tache SERIAL PRIMARY KEY,
+  id_utilisateur INTEGER NOT NULL,
+  titre VARCHAR(255) NOT NULL,
+  completee BOOLEAN DEFAULT FALSE,
+  date_creation TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  date_maj TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,  -- ✅ Ajouté
+  
+  -- Contrainte de clé étrangère
+  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
+);
+
+-- Index pour optimiser les requêtes par utilisateur
+CREATE INDEX idx_tache_utilisateur ON tache(id_utilisateur);
+
+COMMENT ON TABLE tache IS 'Tâches manuelles quotidiennes des utilisateurs (non trackées)';
+
+
 CREATE TABLE administrateur (
   id_administrateur SERIAL PRIMARY KEY NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
   mot_de_passe VARCHAR(255) NOT NULL,
   is_admin BOOLEAN
 );
+

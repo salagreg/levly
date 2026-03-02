@@ -12,12 +12,55 @@ class StravaController {
    */
   static async connect(req, res) {
     try {
-      const userId = req.user.userId;
+      const oauthToken = req.query.token;
+
+      console.log("\n═══════════════════════════════════════");
+      console.log("🔵 STRAVA CONNECT APPELÉ");
+      console.log("═══════════════════════════════════════");
+      console.log(
+        "  Token reçu:",
+        oauthToken ? oauthToken.substring(0, 30) + "..." : "❌ ABSENT"
+      );
+
+      if (!oauthToken) {
+        return res.status(401).json({
+          success: false,
+          message: "Token OAuth manquant",
+        });
+      }
+
+      // Vérifier et décoder le token OAuth
+      const jwt = require("jsonwebtoken");
+      let decoded;
+
+      try {
+        decoded = jwt.verify(oauthToken, process.env.JWT_SECRET);
+        console.log("✅ Token OAuth valide:", decoded);
+      } catch (error) {
+        console.error("❌ Token OAuth invalide:", error.message);
+        return res.status(401).json({
+          success: false,
+          message: "Token OAuth invalide ou expiré",
+        });
+      }
+
+      // Vérifier que c'est bien un token OAuth (pas un token de session normal)
+      if (decoded.type !== "oauth") {
+        console.error("❌ Type de token incorrect:", decoded.type);
+        return res.status(401).json({
+          success: false,
+          message: "Type de token invalide",
+        });
+      }
+
+      const userId = decoded.userId;
+      console.log("👤 UserId extrait du token:", userId);
 
       // Vérifier si Strava est déjà connecté
       const existingPilier = await Pilier.findByUserAndSource(userId, "strava");
 
-      if (existingPilier) {
+      if (existingPilier && existingPilier.access_token) {
+        console.log("⚠️ Strava déjà connecté pour cet utilisateur");
         return res.status(400).json({
           success: false,
           message: "Strava est déjà connecté",
@@ -26,10 +69,13 @@ class StravaController {
 
       // Générer l'URL d'autorisation Strava
       const authUrl = StravaAPI.getAuthorizationUrl(userId);
+      console.log("🔗 Redirection vers:", authUrl);
+      console.log("═══════════════════════════════════════\n");
 
       // Rediriger l'utilisateur vers Strava
       res.redirect(authUrl);
     } catch (error) {
+      console.error("❌ Erreur Strava connect:", error);
       res.status(500).json({
         success: false,
         message: "Erreur lors de la connexion à Strava",
@@ -214,41 +260,7 @@ class StravaController {
       console.log("═══════════════════════════════════════\n");
 
       // Page de succès
-      res.send(`
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                text-align: center;
-                padding: 50px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-              }
-              .container {
-                background: white;
-                color: #333;
-                padding: 40px;
-                border-radius: 10px;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-                max-width: 500px;
-                margin: 0 auto;
-              }
-              h1 { color: #FC4C02; }
-              .success { font-size: 60px; margin-bottom: 20px; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="success">✅</div>
-              <h1>Strava connecté avec succès !</h1>
-              <p><strong>Utilisateur ID:</strong> ${userId}</p>
-              <p>Vous pouvez fermer cette fenêtre et retourner à Levly.</p>
-            </div>
-          </body>
-        </html>
-      `);
+      res.redirect("levly://strava-callback?success=true");
     } catch (error) {
       console.error("\n❌❌❌ ERREUR CALLBACK STRAVA ❌❌❌");
       console.error("Message:", error.message);

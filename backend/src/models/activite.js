@@ -78,6 +78,34 @@ class Activite {
     const result = await pool.query(query, [userId]);
     return parseInt(result.rows[0].count, 10);
   }
+
+  // Mettre à jour une activité existante
+  static async update(activiteId, updateData) {
+    const {
+      duree_minutes,
+      nombre_episodes,
+      activite_validee,
+    } = updateData;
+
+    const query = `
+      UPDATE activite
+      SET 
+        duree_minutes = $1,
+        nombre_episodes = $2,
+        activite_validee = $3
+      WHERE id_activite = $4
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, [
+      duree_minutes,
+      nombre_episodes,
+      activite_validee,
+      activiteId,
+    ]);
+
+    return result.rows[0];
+  }
 }
 
 module.exports = Activite;

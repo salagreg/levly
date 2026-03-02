@@ -105,51 +105,64 @@ class Pilier {
 
   // Mettre à jour un pilier
   static async update(pilierId, updates) {
-    const fields = [];
-    const values = [];
-    let index = 1;
+    try {
+      console.log("✏️ Mise à jour pilier:", pilierId, updates);
 
-    // Mise à jour automatique de date_maj
-    updates.date_maj = new Date();
+      const fields = [];
+      const values = [];
+      let index = 1;
 
-    // Si objectif_config est un objet, le convertir en JSON
-    if (
-      updates.objectif_config &&
-      typeof updates.objectif_config === "object"
-    ) {
-      updates.objectif_config = JSON.stringify(updates.objectif_config);
+      // Mise à jour automatique de date_maj
+      updates.date_maj = new Date();
+
+      // Si objectif_config est un objet, le convertir en JSON
+      if (
+        updates.objectif_config &&
+        typeof updates.objectif_config === "object"
+      ) {
+        updates.objectif_config = JSON.stringify(updates.objectif_config);
+      }
+
+      for (const [key, value] of Object.entries(updates)) {
+        fields.push(`${key} = $${index}`);
+        values.push(value);
+        index++;
+      }
+
+      if (fields.length === 0) {
+        throw new Error("Aucun champ à mettre à jour");
+      }
+
+      const query = `
+        UPDATE pilier 
+        SET ${fields.join(", ")} 
+        WHERE id_pilier = $${index} 
+        RETURNING *
+      `;
+      values.push(pilierId);
+
+      console.log("📝 Query:", query);
+      console.log("📝 Values:", values);
+
+      const result = await pool.query(query, values);
+
+      if (!result.rows[0]) return null;
+
+      const pilier = result.rows[0];
+      
+      console.log("✅ Pilier mis à jour:", pilier);
+
+      return {
+        ...pilier,
+        objectif_config:
+          typeof pilier.objectif_config === "string"
+            ? JSON.parse(pilier.objectif_config)
+            : pilier.objectif_config,
+      };
+    } catch (error) {
+      console.error("❌ Erreur update pilier:", error);
+      throw error;
     }
-
-    for (const [key, value] of Object.entries(updates)) {
-      fields.push(`${key} = $${index}`);
-      values.push(value);
-      index++;
-    }
-
-    if (fields.length === 0) {
-      throw new Error("Aucun champ à mettre à jour");
-    }
-
-    const query = `
-      UPDATE pilier 
-      SET ${fields.join(", ")} 
-      WHERE id_pilier = $${index} 
-      RETURNING *
-    `;
-    values.push(pilierId);
-
-    const result = await pool.query(query, values);
-
-    if (!result.rows[0]) return null;
-
-    const pilier = result.rows[0];
-    return {
-      ...pilier,
-      objectif_config:
-        typeof pilier.objectif_config === "string"
-          ? JSON.parse(pilier.objectif_config)
-          : pilier.objectif_config,
-    };
   }
 
   // Supprimer un pilier

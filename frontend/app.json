@@ -10,7 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.levly"
+      "bundleIdentifier": "com.anonymous.levly",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -35,11 +38,18 @@
           "resizeMode": "cover",
           "backgroundColor": "#1B3A6B"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "127d9e79-8b3c-4b05-a470-525ee24f4614"
+      }
     }
   }
 }

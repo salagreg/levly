@@ -10,7 +10,7 @@ class StravaAPI {
 
     const params = new URLSearchParams({
       client_id: process.env.STRAVA_CLIENT_ID,
-      redirect_uri: process.env.STRAVA_REDIRECT_URI,
+      redirect_uri: "http://localhost:3000/api/strava/callback",
       response_type: "code",
       approval_prompt: "auto", // 'force' pour toujours demander, 'auto' pour se souvenir
       scope: "activity:read_all", // Permission de lire toutes les activités

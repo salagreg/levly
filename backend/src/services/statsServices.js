@@ -4,14 +4,11 @@
 
 const db = require("../config/database");
 
-// ================================================================
-// Récupérer les statistiques de l'utilisateur
-// ================================================================
 exports.getStats = async (userId) => {
   try {
-    console.log("📊 getStats appelé pour userId:", userId);
-
-    // 1. Récupérer la série actuelle
+    // ----------------------------------------------------------------
+    // 1. Série actuelle (déjà réel, on garde)
+    // ----------------------------------------------------------------
     const serieQuery = `
       SELECT COALESCE(serie_actuelle, 0) as serie
       FROM serie
@@ -20,54 +17,96 @@ exports.getStats = async (userId) => {
     const serieResult = await db.query(serieQuery, [userId]);
     const serie = parseInt(serieResult.rows[0]?.serie || 0);
 
-    // 2. Récupérer le total de tokens
-    const tokensQuery = `
-      SELECT COALESCE(SUM(montant_jeton), 0) as total_tokens
-      FROM jeton
+    // ----------------------------------------------------------------
+    // 2. Données des 7 derniers jours (VRAI - depuis table activite)
+    // ----------------------------------------------------------------
+    // On demande à PostgreSQL : pour chaque jour des 7 derniers jours,
+    // est-ce qu'il existe AU MOINS UNE activité validée pour cet utilisateur ?
+    const weekQuery = `
+      SELECT 
+        date_activite::date as jour,
+        BOOL_OR(activite_validee) as validated
+      FROM activite
       WHERE id_utilisateur = $1
+        AND date_activite >= CURRENT_DATE - INTERVAL '6 days'
+        AND date_activite <= CURRENT_DATE
+      GROUP BY date_activite::date
+      ORDER BY date_activite::date ASC
     `;
-    const tokensResult = await db.query(tokensQuery, [userId]);
-    const totalTokens = parseInt(tokensResult.rows[0]?.total_tokens || 0);
+    const weekResult = await db.query(weekQuery, [userId]);
 
-    // 3. Générer les données de la semaine (mockées pour MVP)
-    const jours = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-    const today = new Date();
-
+    // Construire le tableau des 7 jours
+    // On doit afficher TOUS les 7 jours même si certains n'ont pas d'activité
+    const jours = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
     const weekData = [];
+
     for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
+      const date = new Date();
       date.setDate(date.getDate() - i);
 
-      const dayIndex = date.getDay() === 0 ? 6 : date.getDay() - 1; // Ajuster dimanche
+      // Formater la date en YYYY-MM-DD pour comparer avec les résultats SQL
+      const dateStr = date.toISOString().split("T")[0];
+
+      // Chercher si ce jour existe dans les résultats de la BDD
+      const found = weekResult.rows.find(
+        (row) => row.jour.toISOString().split("T")[0] === dateStr
+      );
 
       weekData.push({
-        day: jours[dayIndex],
+        day: jours[date.getDay()],
         date: `${date.getDate()}/${date.getMonth() + 1}`,
-        validated: i >= 2, // Mock : les 5 derniers jours validés
+        // Si le jour existe en BDD et est validé → true, sinon false
+        validated: found ? found.validated : false,
       });
     }
 
-    console.log("📅 Données semaine (mockées):", weekData);
+    // ----------------------------------------------------------------
+    // 3. Routines complétées (VRAI - nombre total d'activités validées)
+    // ----------------------------------------------------------------
+    // On compte simplement toutes les activités où activite_validee = true
+    const routinesQuery = `
+      SELECT COUNT(*) as total
+      FROM activite
+      WHERE id_utilisateur = $1
+        AND activite_validee = true
+    `;
+    const routinesResult = await db.query(routinesQuery, [userId]);
+    const routinesCompletees = parseInt(routinesResult.rows[0]?.total || 0);
 
-    // 4. Calculer les stats (mockées pour MVP)
+    // ----------------------------------------------------------------
+    // 4. Temps total (VRAI - somme des duree_minutes validées)
+    // ----------------------------------------------------------------
+    // On additionne toutes les minutes des activités validées
+    // puis on convertit en heures et minutes pour l'affichage
+    const tempsQuery = `
+      SELECT COALESCE(SUM(duree_minutes), 0) as total_minutes
+      FROM activite
+      WHERE id_utilisateur = $1
+        AND activite_validee = true
+    `;
+    const tempsResult = await db.query(tempsQuery, [userId]);
+    const totalMinutes = parseInt(tempsResult.rows[0]?.total_minutes || 0);
+
+    const heures = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const tempsTotal = `${heures}h ${minutes}m`;
+
+    // ----------------------------------------------------------------
+    // 5. Taux de réussite (VRAI - basé sur les 7 derniers jours réels)
+    // ----------------------------------------------------------------
     const joursValidesCount = weekData.filter((d) => d.validated).length;
     const tauxReussite = Math.round((joursValidesCount / 7) * 100);
 
     const stats = {
-      routines_completees: joursValidesCount * 2, // 2 routines par jour
-      temps_total: "12h 30m",
+      routines_completees: routinesCompletees,
+      temps_total: tempsTotal,
       serie_actuelle: serie,
       taux_reussite: tauxReussite,
     };
 
-    console.log("📊 Stats calculées:", stats);
-
-    return {
-      weekData,
-      stats,
-    };
+    return { weekData, stats };
   } catch (error) {
-    console.error("❌ Erreur getStats:", error);
+    console.error("Erreur getStats:", error);
     throw error;
   }
 };

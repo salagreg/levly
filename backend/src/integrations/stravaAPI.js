@@ -103,8 +103,6 @@ class StravaAPI {
           Authorization: `Bearer ${accessToken}`,
         },
       });
-
-      console.log("✅ Token Strava révoqué avec succès");
     } catch (error) {
       console.error(
         "Erreur révocation token Strava:",

@@ -13,8 +13,6 @@ export const updatePilierDuration = async (source, duration) => {
   try {
     const token = await AsyncStorage.getItem("token");
 
-    console.log("⏱️ Mise à jour durée:", { source, duration });
-
     const response = await axios.put(
       `${API_BASE_URL}/piliers/duration`,
       { source, duration },
@@ -24,8 +22,6 @@ export const updatePilierDuration = async (source, duration) => {
         },
       }
     );
-
-    console.log("✅ Durée mise à jour:", response.data);
 
     return response.data;
   } catch (error) {

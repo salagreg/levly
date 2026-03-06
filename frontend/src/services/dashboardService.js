@@ -38,8 +38,6 @@ export const getTaches = async () => {
       },
     });
 
-    console.log("📋 Tâches récupérées:", response.data);
-
     return response.data;
   } catch (error) {
     console.error("Erreur getTaches:", error);
@@ -63,8 +61,6 @@ export const createTache = async (titre) => {
         },
       }
     );
-
-    console.log("✅ Tâche créée:", response.data);
 
     return response.data;
   } catch (error) {
@@ -90,8 +86,6 @@ export const toggleTache = async (tacheId, completee) => {
       }
     );
 
-    console.log("✅ Tâche mise à jour:", response.data);
-
     return response.data;
   } catch (error) {
     console.error("Erreur toggleTache:", error);
@@ -112,8 +106,6 @@ export const deleteTache = async (tacheId) => {
       },
     });
 
-    console.log("🗑️ Tâche supprimée:", response.data);
-
     return response.data;
   } catch (error) {
     console.error("Erreur deleteTache:", error);
@@ -133,11 +125,6 @@ export const validateDay = async () => {
 
     const url = `${API_BASE_URL}/validation/recovery`;
 
-    console.log("🔗 URL COMPLÈTE:", url);
-    console.log("🌍 Timezone:", timezone);
-    console.log("🎯 Token:", token ? "présent" : "manquant");
-    console.log("🎯 Appel API /validation/recovery...");
-
     const response = await axios.post(
       url,
       { timezone },
@@ -147,8 +134,6 @@ export const validateDay = async () => {
         },
       }
     );
-
-    console.log("✅ Réponse validation:", response.data);
 
     return response.data;
   } catch (error) {

@@ -8,11 +8,8 @@ const rewardsService = require("../services/rewardsServices");
 // GET /api/rewards - Récupérer les badges
 // ================================================================
 exports.getBadges = async (req, res) => {
-  console.log("🏆🏆🏆 CONTROLLER getBadges appelé !");
-
   try {
     const userId = req.user?.userId || req.user?.id || 1;
-    console.log("👤 userId:", userId);
 
     const data = await rewardsService.getBadges(userId);
 

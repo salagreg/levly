@@ -106,8 +106,6 @@ class Pilier {
   // Mettre à jour un pilier
   static async update(pilierId, updates) {
     try {
-      console.log("✏️ Mise à jour pilier:", pilierId, updates);
-
       const fields = [];
       const values = [];
       let index = 1;
@@ -141,16 +139,11 @@ class Pilier {
       `;
       values.push(pilierId);
 
-      console.log("📝 Query:", query);
-      console.log("📝 Values:", values);
-
       const result = await pool.query(query, values);
 
       if (!result.rows[0]) return null;
 
       const pilier = result.rows[0];
-      
-      console.log("✅ Pilier mis à jour:", pilier);
 
       return {
         ...pilier,

@@ -13,13 +13,7 @@ class SpotifyController {
     try {
       const oauthToken = req.query.token;
 
-      console.log("\n═══════════════════════════════════════");
-      console.log("🎧 SPOTIFY CONNECT APPELÉ");
-      console.log("═══════════════════════════════════════");
-      console.log(
-        "  Token reçu:",
-        oauthToken ? oauthToken.substring(0, 30) + "..." : "❌ ABSENT"
-      );
+      
 
       if (!oauthToken) {
         return res.status(401).json({
@@ -34,7 +28,6 @@ class SpotifyController {
 
       try {
         decoded = jwt.verify(oauthToken, process.env.JWT_SECRET);
-        console.log("✅ Token OAuth valide:", decoded);
       } catch (error) {
         console.error("❌ Token OAuth invalide:", error.message);
         return res.status(401).json({
@@ -53,7 +46,6 @@ class SpotifyController {
       }
 
       const userId = decoded.userId;
-      console.log("👤 UserId extrait du token:", userId);
 
       // Vérifier si Spotify est déjà connecté
       const existingPilier = await Pilier.findByUserAndSource(
@@ -62,7 +54,6 @@ class SpotifyController {
       );
 
       if (existingPilier && existingPilier.access_token) {
-        console.log("⚠️ Spotify déjà connecté pour cet utilisateur");
         return res.status(400).json({
           success: false,
           message: "Spotify est déjà connecté",
@@ -72,12 +63,7 @@ class SpotifyController {
       // Générer l'URL d'autorisation Spotify
       const authUrl = SpotifyAPI.getAuthorizationUrl(userId);
 
-      console.log("\n🔍 DEBUG URL GÉNÉRÉE:");
-      console.log("  Full URL:", authUrl);
-      console.log(
-        "  Redirect URI dans URL:",
-        new URL(authUrl).searchParams.get("redirect_uri")
-      );
+      
 
       // Rediriger l'utilisateur vers Spotify
       res.redirect(authUrl);
@@ -95,24 +81,13 @@ class SpotifyController {
    * GET /api/spotify/callback?code=...&state=...
    */
   static async callback(req, res) {
-    console.log("\n═══════════════════════════════════════");
-    console.log("🎧 CALLBACK SPOTIFY APPELÉ");
-    console.log("═══════════════════════════════════════");
-
     try {
       const { code, state, error } = req.query;
 
-      console.log("📥 Query params reçus:");
-      console.log(
-        "  code:",
-        code ? `✅ ${code.substring(0, 20)}...` : "❌ ABSENT"
-      );
-      console.log("  state:", state || "❌ ABSENT");
-      console.log("  error:", error || "Aucune");
+      
 
       // L'utilisateur a refusé
       if (error === "access_denied") {
-        console.log("❌ Utilisateur a refusé l'autorisation");
         return res.status(400).json({
           success: false,
           message: "Autorisation Spotify refusée",
@@ -121,7 +96,6 @@ class SpotifyController {
 
       // Vérifier paramètres
       if (!code || !state) {
-        console.log("❌ Paramètres manquants");
         return res.status(400).json({
           success: false,
           message: "Paramètres OAuth manquants (code ou state)",
@@ -129,32 +103,17 @@ class SpotifyController {
       }
 
       const userId = parseInt(state);
-      console.log("👤 User ID extrait du state:", userId);
 
       // Échanger le code contre les tokens
-      console.log("\n🔄 Échange du code contre tokens Spotify...");
 
       let tokens;
       try {
         tokens = await SpotifyAPI.exchangeCodeForToken(code);
-        console.log("✅ Tokens reçus de Spotify:");
-        console.log(
-          "  access_token:",
-          tokens.access_token
-            ? tokens.access_token.substring(0, 30) + "..."
-            : "❌ NULL"
-        );
-        console.log(
-          "  refresh_token:",
-          tokens.refresh_token
-            ? tokens.refresh_token.substring(0, 30) + "..."
-            : "❌ NULL"
-        );
-        console.log("  expires_at:", tokens.expires_at);
-        console.log(
-          "  expires_date:",
-          new Date(tokens.expires_at * 1000).toISOString()
-        );
+
+        
+        
+
+        
       } catch (exchangeError) {
         console.error(
           "❌ ERREUR lors de l'échange du code:",
@@ -164,33 +123,20 @@ class SpotifyController {
       }
 
       // Vérifier si un pilier existe déjà
-      console.log("\n🔍 Recherche pilier Spotify existant pour user", userId);
+
       const existingPilier = await Pilier.findByUserAndSource(
         userId,
         "spotify"
       );
-      console.log(
-        "  Résultat:",
-        existingPilier
-          ? `Pilier ${existingPilier.id_pilier} trouvé`
-          : "Aucun pilier existant"
-      );
+      
 
       let pilierResult;
 
       if (existingPilier) {
         // Mise à jour
-        console.log("\n📝 MISE À JOUR du pilier", existingPilier.id_pilier);
-        console.log("  Données à mettre à jour:");
-        console.log(
-          "    access_token:",
-          tokens.access_token.substring(0, 30) + "..."
-        );
-        console.log(
-          "    refresh_token:",
-          tokens.refresh_token.substring(0, 30) + "..."
-        );
-        console.log("    token_expires_at:", tokens.expires_at);
+
+        
+        
 
         try {
           pilierResult = await Pilier.update(existingPilier.id_pilier, {
@@ -199,8 +145,6 @@ class SpotifyController {
             token_expires_at: tokens.expires_at,
             pilier_actif: true,
           });
-          console.log("✅ Pilier mis à jour avec succès");
-          console.log("  Résultat:", pilierResult);
         } catch (updateError) {
           console.error(
             "❌ ERREUR lors de la mise à jour:",
@@ -211,23 +155,9 @@ class SpotifyController {
         }
       } else {
         // Création
-        console.log("\n🆕 CRÉATION d'un nouveau pilier");
-        console.log("  Données à insérer:");
-        console.log("    id_utilisateur:", userId);
-        console.log("    nom_pilier: Culture & Podcasts");
-        console.log("    source_externe: spotify");
-        console.log("    type_validation: episodes");
-        console.log("    episodes_objectif: 1");
-        console.log("    duree_minimale_episode: 15");
-        console.log(
-          "    access_token:",
-          tokens.access_token.substring(0, 30) + "..."
-        );
-        console.log(
-          "    refresh_token:",
-          tokens.refresh_token.substring(0, 30) + "..."
-        );
-        console.log("    token_expires_at:", tokens.expires_at);
+
+        
+        
 
         try {
           pilierResult = await Pilier.create({
@@ -244,8 +174,6 @@ class SpotifyController {
             refresh_token: tokens.refresh_token,
             token_expires_at: tokens.expires_at,
           });
-          console.log("✅ Pilier créé avec succès");
-          console.log("  Résultat:", pilierResult);
         } catch (createError) {
           console.error("❌ ERREUR lors de la création:", createError.message);
           console.error("  Stack:", createError.stack);
@@ -254,24 +182,11 @@ class SpotifyController {
       }
 
       // Vérifier en base que les tokens ont bien été enregistrés
-      console.log("\n🔍 Vérification en base de données...");
-      const verif = await Pilier.findByUserAndSource(userId, "spotify");
-      console.log(
-        "  access_token enregistré ?",
-        verif.access_token ? "✅ OUI" : "❌ NON"
-      );
-      console.log(
-        "  refresh_token enregistré ?",
-        verif.refresh_token ? "✅ OUI" : "❌ NON"
-      );
-      console.log(
-        "  token_expires_at enregistré ?",
-        verif.token_expires_at ? "✅ OUI" : "❌ NON"
-      );
 
-      console.log("\n═══════════════════════════════════════");
-      console.log("✅ SPOTIFY CONNECTÉ AVEC SUCCÈS");
-      console.log("═══════════════════════════════════════\n");
+      const verif = await Pilier.findByUserAndSource(userId, "spotify");
+      
+      
+      
 
       // Page de succès
       res.redirect("levly://spotify-callback?success=true");
@@ -318,7 +233,6 @@ class SpotifyController {
 
       if (now > pilier.token_expires_at) {
         // Token expiré, on le renouvelle
-        console.log("🔄 Token Spotify expiré, renouvellement...");
 
         const newTokens = await SpotifyAPI.refreshAccessToken(
           pilier.refresh_token
@@ -345,10 +259,6 @@ class SpotifyController {
       const validPodcasts = allPodcasts.filter((podcast) => {
         return podcast.duration_ms >= dureeMinimaleMs;
       });
-
-      console.log("📊 Podcasts écoutés aujourd'hui:");
-      console.log("  Total:", allPodcasts.length);
-      console.log("  Valides (≥ 15 min):", validPodcasts.length);
 
       // Vérifier si objectif atteint
       const objectifAtteint = validPodcasts.length >= config.episodes;

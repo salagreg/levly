@@ -9,8 +9,6 @@ const db = require("../config/database");
 // ================================================================
 exports.getBadges = async (userId) => {
   try {
-    console.log("🏆 getBadges appelé pour userId:", userId);
-
     // 1. Récupérer la série actuelle de l'utilisateur
     const serieQuery = `
       SELECT COALESCE(serie_actuelle, 0) as serie
@@ -20,7 +18,6 @@ exports.getBadges = async (userId) => {
 
     const serieResult = await db.query(serieQuery, [userId]);
     const serie = serieResult.rows[0]?.serie || 0;
-    console.log("🔥 Série actuelle:", serie);
 
     // 2. Récupérer le total de tokens
     const tokensQuery = `
@@ -31,7 +28,6 @@ exports.getBadges = async (userId) => {
 
     const tokensResult = await db.query(tokensQuery, [userId]);
     const totalTokens = parseInt(tokensResult.rows[0]?.total_tokens || 0);
-    console.log("💰 Total tokens:", totalTokens);
 
     // 3. Définir les badges avec logique de déblocage
     const badges = [
@@ -71,8 +67,6 @@ exports.getBadges = async (userId) => {
         unlocked: totalTokens >= 10000,
       },
     ];
-
-    console.log("✅ Badges générés:", badges);
 
     return {
       badges,

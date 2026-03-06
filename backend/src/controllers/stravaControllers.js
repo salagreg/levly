@@ -14,13 +14,7 @@ class StravaController {
     try {
       const oauthToken = req.query.token;
 
-      console.log("\n═══════════════════════════════════════");
-      console.log("🔵 STRAVA CONNECT APPELÉ");
-      console.log("═══════════════════════════════════════");
-      console.log(
-        "  Token reçu:",
-        oauthToken ? oauthToken.substring(0, 30) + "..." : "❌ ABSENT"
-      );
+      
 
       if (!oauthToken) {
         return res.status(401).json({
@@ -35,7 +29,6 @@ class StravaController {
 
       try {
         decoded = jwt.verify(oauthToken, process.env.JWT_SECRET);
-        console.log("✅ Token OAuth valide:", decoded);
       } catch (error) {
         console.error("❌ Token OAuth invalide:", error.message);
         return res.status(401).json({
@@ -54,13 +47,11 @@ class StravaController {
       }
 
       const userId = decoded.userId;
-      console.log("👤 UserId extrait du token:", userId);
 
       // Vérifier si Strava est déjà connecté
       const existingPilier = await Pilier.findByUserAndSource(userId, "strava");
 
       if (existingPilier && existingPilier.access_token) {
-        console.log("⚠️ Strava déjà connecté pour cet utilisateur");
         return res.status(400).json({
           success: false,
           message: "Strava est déjà connecté",
@@ -69,8 +60,6 @@ class StravaController {
 
       // Générer l'URL d'autorisation Strava
       const authUrl = StravaAPI.getAuthorizationUrl(userId);
-      console.log("🔗 Redirection vers:", authUrl);
-      console.log("═══════════════════════════════════════\n");
 
       // Rediriger l'utilisateur vers Strava
       res.redirect(authUrl);
@@ -89,24 +78,13 @@ class StravaController {
    * GET /api/strava/callback?code=...&state=...
    */
   static async callback(req, res) {
-    console.log("\n═══════════════════════════════════════");
-    console.log("🔵 CALLBACK STRAVA APPELÉ");
-    console.log("═══════════════════════════════════════");
-
     try {
       const { code, state, error } = req.query;
 
-      console.log("📥 Query params reçus:");
-      console.log(
-        "  code:",
-        code ? `✅ ${code.substring(0, 20)}...` : "❌ ABSENT"
-      );
-      console.log("  state:", state || "❌ ABSENT");
-      console.log("  error:", error || "Aucune");
+      
 
       // L'utilisateur a refusé
       if (error === "access_denied") {
-        console.log("❌ Utilisateur a refusé l'autorisation");
         return res.status(400).json({
           success: false,
           message: "Autorisation Strava refusée",
@@ -115,7 +93,6 @@ class StravaController {
 
       // Vérifier paramètres
       if (!code || !state) {
-        console.log("❌ Paramètres manquants");
         return res.status(400).json({
           success: false,
           message: "Paramètres OAuth manquants (code ou state)",
@@ -123,32 +100,17 @@ class StravaController {
       }
 
       const userId = parseInt(state);
-      console.log("👤 User ID extrait du state:", userId);
 
       // Échanger le code contre les tokens
-      console.log("\n🔄 Échange du code contre tokens Strava...");
 
       let tokens;
       try {
         tokens = await StravaAPI.exchangeCodeForToken(code);
-        console.log("✅ Tokens reçus de Strava:");
-        console.log(
-          "  access_token:",
-          tokens.access_token
-            ? tokens.access_token.substring(0, 30) + "..."
-            : "❌ NULL"
-        );
-        console.log(
-          "  refresh_token:",
-          tokens.refresh_token
-            ? tokens.refresh_token.substring(0, 30) + "..."
-            : "❌ NULL"
-        );
-        console.log("  expires_at:", tokens.expires_at);
-        console.log(
-          "  expires_date:",
-          new Date(tokens.expires_at * 1000).toISOString()
-        );
+
+        
+        
+
+        
       } catch (exchangeError) {
         console.error(
           "❌ ERREUR lors de l'échange du code:",
@@ -158,30 +120,17 @@ class StravaController {
       }
 
       // Vérifier si un pilier existe déjà
-      console.log("\n🔍 Recherche pilier Strava existant pour user", userId);
+
       const existingPilier = await Pilier.findByUserAndSource(userId, "strava");
-      console.log(
-        "  Résultat:",
-        existingPilier
-          ? `Pilier ${existingPilier.id_pilier} trouvé`
-          : "Aucun pilier existant"
-      );
+      
 
       let pilierResult;
 
       if (existingPilier) {
         // Mise à jour
-        console.log("\n📝 MISE À JOUR du pilier", existingPilier.id_pilier);
-        console.log("  Données à mettre à jour:");
-        console.log(
-          "    access_token:",
-          tokens.access_token.substring(0, 30) + "..."
-        );
-        console.log(
-          "    refresh_token:",
-          tokens.refresh_token.substring(0, 30) + "..."
-        );
-        console.log("    token_expires_at:", tokens.expires_at);
+
+        
+        
 
         try {
           pilierResult = await Pilier.update(existingPilier.id_pilier, {
@@ -190,8 +139,6 @@ class StravaController {
             token_expires_at: tokens.expires_at,
             pilier_actif: true,
           });
-          console.log("✅ Pilier mis à jour avec succès");
-          console.log("  Résultat:", pilierResult);
         } catch (updateError) {
           console.error(
             "❌ ERREUR lors de la mise à jour:",
@@ -202,21 +149,9 @@ class StravaController {
         }
       } else {
         // Création
-        console.log("\n🆕 CRÉATION d'un nouveau pilier");
-        console.log("  Données à insérer:");
-        console.log("    id_utilisateur:", userId);
-        console.log("    nom_pilier: Sport");
-        console.log("    source_externe: strava");
-        console.log("    duree_objectif_minutes: 30");
-        console.log(
-          "    access_token:",
-          tokens.access_token.substring(0, 30) + "..."
-        );
-        console.log(
-          "    refresh_token:",
-          tokens.refresh_token.substring(0, 30) + "..."
-        );
-        console.log("    token_expires_at:", tokens.expires_at);
+
+        
+        
 
         try {
           pilierResult = await Pilier.create({
@@ -230,8 +165,6 @@ class StravaController {
             refresh_token: tokens.refresh_token,
             token_expires_at: tokens.expires_at,
           });
-          console.log("✅ Pilier créé avec succès");
-          console.log("  Résultat:", pilierResult);
         } catch (createError) {
           console.error("❌ ERREUR lors de la création:", createError.message);
           console.error("  Stack:", createError.stack);
@@ -240,24 +173,11 @@ class StravaController {
       }
 
       // Vérifier en base que les tokens ont bien été enregistrés
-      console.log("\n🔍 Vérification en base de données...");
-      const verif = await Pilier.findByUserAndSource(userId, "strava");
-      console.log(
-        "  access_token enregistré ?",
-        verif.access_token ? "✅ OUI" : "❌ NON"
-      );
-      console.log(
-        "  refresh_token enregistré ?",
-        verif.refresh_token ? "✅ OUI" : "❌ NON"
-      );
-      console.log(
-        "  token_expires_at enregistré ?",
-        verif.token_expires_at ? "✅ OUI" : "❌ NON"
-      );
 
-      console.log("\n═══════════════════════════════════════");
-      console.log("✅ STRAVA CONNECTÉ AVEC SUCCÈS");
-      console.log("═══════════════════════════════════════\n");
+      const verif = await Pilier.findByUserAndSource(userId, "strava");
+      
+      
+      
 
       // Page de succès
       res.redirect("levly://strava-callback?success=true");
@@ -304,7 +224,6 @@ class StravaController {
 
       if (now > pilier.token_expires_at) {
         // Token expiré, on le renouvelle
-        console.log("🔄 Token Strava expiré, renouvellement...");
 
         const newTokens = await StravaAPI.refreshAccessToken(
           pilier.refresh_token
@@ -325,16 +244,11 @@ class StravaController {
       startOfDay.setHours(0, 0, 0, 0);
       const afterTimestamp = Math.floor(startOfDay.getTime() / 1000);
 
-      console.log("📅 Récupération activités du jour:");
-      console.log("  Après:", startOfDay.toISOString());
-
       // Récupérer les activités APRÈS le début de la journée
       const activities = await StravaAPI.getTodayActivities(
         accessToken,
         afterTimestamp
       );
-
-      console.log("✅ Activités trouvées:", activities.length);
 
       res.status(200).json({
         success: true,

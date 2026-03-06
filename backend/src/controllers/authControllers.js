@@ -2,6 +2,8 @@
 // Contrôleurs pour l'authentification des utilisateurs
 // ===============================================================
 const authServices = require("../services/authServices");
+const { isValidEmail, isValidPassword } = require('../utils/validators');
+
 
 // ===============================================================
 // Inscription d'un nouvel utilisateur
@@ -14,6 +16,20 @@ const register = async (req, res) => {
     if (!prenom || !nom || !email || !mot_de_passe || !date_de_naissance) {
       return res.status(409).json({
         message: "Tous les champs sont obligatoires",
+      });
+    }
+
+    // Format email
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ 
+        message: 'Format d\'email invalide' 
+      });
+    }
+
+    // Longueur mot de passe
+    if (!isValidPassword(mot_de_passe)) {
+      return res.status(400).json({ 
+        message: 'Le mot de passe doit contenir au moins 8 caractères' 
       });
     }
 

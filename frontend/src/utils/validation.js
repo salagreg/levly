@@ -8,9 +8,9 @@ const validation = {
     return emailRegex.test(email);
   },
 
-  // Validation mot de passe (min 6 caractères)
+  // Validation mot de passe (min 8 caractères)
   isValidPassword: (password) => {
-    return password && password.length >= 6;
+    return password && password.length >= 8;
   },
 
   // Validation champ non vide
@@ -46,7 +46,7 @@ const validation = {
 
     if (!validation.isValidPassword(formData.mot_de_passe)) {
       errors.mot_de_passe =
-        "Le mot de passe doit contenir au moins 6 caractères";
+        "Le mot de passe doit contenir au moins 8 caractères";
     }
 
     return {
@@ -65,7 +65,7 @@ const validation = {
 
     if (!validation.isValidPassword(formData.mot_de_passe)) {
       errors.mot_de_passe =
-        "Le mot de passe doit contenir au moins 6 caractères";
+        "Le mot de passe doit contenir au moins 8 caractères";
     }
 
     return {

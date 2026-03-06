@@ -107,7 +107,6 @@ exports.validateDay = async (userId, timezone) => {
         // Mise à jour
         await Activite.update(existingActivite.id_activite, {
           duree_minutes: result.current || 0,
-          nombre_episodes: result.podcasts || null,
           activite_validee: isValidatedNow,
         });
         console.log("💾 Activité mise à jour en BDD");
@@ -118,7 +117,6 @@ exports.validateDay = async (userId, timezone) => {
           id_pilier: pilier.id_pilier,
           date_activite: today,
           duree_minutes: result.current || 0,
-          nombre_episodes: result.podcasts || null,
           source_externe: result.source,
           activite_validee: isValidatedNow,
         });

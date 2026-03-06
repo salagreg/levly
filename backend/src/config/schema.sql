@@ -42,8 +42,8 @@ CREATE TABLE activite (
   duree_minutes INT,
   source_externe VARCHAR(50),
   activite_validee BOOLEAN NOT NULL,
-  nombre_episodes INT,
-
+  -- nombre_episodes INT, -- Supprimé : workaround Spotify musique, pas de comptage épisodes
+  
   -- Contraintes de clés étrangères
   FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE,
   FOREIGN KEY (id_pilier) REFERENCES pilier(id_pilier) ON DELETE CASCADE

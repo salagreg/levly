@@ -92,9 +92,6 @@ app.get("/health", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Serveur Levly démarré sur le port ${port}`);
-  console.log(`📍 Health check: http://localhost:${port}/health`);
-});
+app.listen(port, () => {});
 
 resetTachesCron();

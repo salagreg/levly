@@ -78,7 +78,6 @@ export default function DashboardScreen() {
       }));
 
       setTasks(mappedTasks);
-      console.log("✅ Tâches chargées:", mappedTasks.length);
     } catch (error) {
       console.error("Erreur chargement dashboard:", error);
       Alert.alert(
@@ -117,7 +116,6 @@ export default function DashboardScreen() {
 
       // Appel API
       await toggleTache(taskId, newCompletedState);
-      console.log("✅ Tâche mise à jour:", taskId, newCompletedState);
     } catch (error) {
       console.error("Erreur toggle task:", error);
 
@@ -147,7 +145,6 @@ export default function DashboardScreen() {
 
     try {
       setCreatingTask(true);
-      console.log("➕ Création tâche:", newTaskTitle);
 
       // Appel API
       await createTache(newTaskTitle.trim());
@@ -183,8 +180,6 @@ export default function DashboardScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              console.log("🗑️ Suppression tâche:", taskId);
-
               // Optimistic update
               setTasks((prev) => prev.filter((task) => task.id !== taskId));
 

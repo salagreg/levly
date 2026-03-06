@@ -46,8 +46,6 @@ export default function DurationScreen() {
       // Récupérer le statut des connexions depuis la DB
       const status = await getConnectionStatus();
 
-      console.log("📱 Statut connexions:", status);
-
       setSpotifyConnected(status.spotify || false);
       setStravaConnected(status.strava || false);
 
@@ -77,27 +75,18 @@ export default function DurationScreen() {
 
   const handleFinish = async () => {
     try {
-      console.log("💾 Sauvegarde des durées...");
-
       // Sauvegarder les durées en base de données
       if (spotifyConnected) {
         await updatePilierDuration("spotify", spotifyDuration);
-        console.log("✅ Durée Spotify sauvegardée:", spotifyDuration);
       }
 
       if (stravaConnected) {
         await updatePilierDuration("strava", stravaDuration);
-        console.log("✅ Durée Strava sauvegardée:", stravaDuration);
       }
 
       // Sauvegarder aussi dans AsyncStorage (backup local)
-      await AsyncStorage.setItem(
-        "spotifyDuration",
-        spotifyDuration.toString()
-      );
+      await AsyncStorage.setItem("spotifyDuration", spotifyDuration.toString());
       await AsyncStorage.setItem("stravaDuration", stravaDuration.toString());
-
-      console.log("✅ Durées sauvegardées avec succès !");
 
       // Naviguer vers le dashboard
       router.replace("/(tabs)");
@@ -115,11 +104,7 @@ export default function DurationScreen() {
       {/* Header avec back button + titre */}
       <View style={styles.header}>
         <BackButton onPress={() => router.push("/sync")} />
-        <Text
-          style={styles.headerTitle}
-          adjustsFontSizeToFit
-          numberOfLines={1}
-        >
+        <Text style={styles.headerTitle} adjustsFontSizeToFit numberOfLines={1}>
           Définir les durées
         </Text>
         <View style={styles.headerSpacer} />
@@ -174,9 +159,7 @@ export default function DurationScreen() {
           {!spotifyConnected && !stravaConnected && (
             <View style={styles.emptyState}>
               <Ionicons name="alert-circle-outline" size={64} color="#D1D5DB" />
-              <Text style={styles.emptyText}>
-                Aucune application connectée
-              </Text>
+              <Text style={styles.emptyText}>Aucune application connectée</Text>
               <Text style={styles.emptySubtext}>
                 Retournez à l'écran précédent pour connecter Spotify ou Strava
               </Text>

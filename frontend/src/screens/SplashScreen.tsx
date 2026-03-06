@@ -13,18 +13,13 @@ export default function SplashScreenComponent() {
   useEffect(() => {
     async function prepare() {
       try {
-        console.log("🚀 SplashScreen monté !");
-
         // D'abord cacher le splash natif
         await SplashScreen.hideAsync();
-        console.log("✅ Splash natif caché");
 
         // PUIS attendre 2 secondes sur notre écran
-        console.log("⏳ Attente 2 secondes...");
+
         await new Promise((resolve) => setTimeout(resolve, 3000));
-        console.log("✅ 2 secondes écoulées !");
       } finally {
-        console.log("🔄 Navigation vers onboarding...");
         router.replace("/onboarding/step1");
       }
     }

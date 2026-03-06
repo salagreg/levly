@@ -82,8 +82,6 @@ class PilierService {
   // ================================================================
   static async updateDuration(userId, source, duration) {
     try {
-      console.log("⏱️ updateDuration:", { userId, source, duration });
-
       // Vérifier que la durée est valide
       if (duration < 10 || duration > 60) {
         throw new Error("La durée doit être entre 10 et 60 minutes");
@@ -105,8 +103,6 @@ class PilierService {
       const updatedPilier = await Pilier.update(pilier.id_pilier, {
         objectif_config: updatedConfig,
       });
-
-      console.log("✅ Durée mise à jour:", updatedPilier);
 
       return updatedPilier;
     } catch (error) {
@@ -134,20 +130,16 @@ class PilierService {
         case "strava":
           if (accessToken) {
             await StravaAPI.revokeAccess(accessToken);
-            console.log(`✅ Token Strava révoqué`);
           }
           break;
 
         case "spotify":
           // Spotify : pas de révocation OAuth officielle
           // Le token expire automatiquement
-          console.log(
-            `✅ Connexion Spotify supprimée (token invalide après déconnexion)`
-          );
+          
           break;
 
         default:
-          console.log(`[INFO] Pas de révocation OAuth pour ${appName}`);
       }
     } catch (error) {
       console.error(`Erreur révocation OAuth ${appName}:`, error.message);

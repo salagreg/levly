@@ -2,8 +2,7 @@
 // Contrôleurs pour l'authentification des utilisateurs
 // ===============================================================
 const authServices = require("../services/authServices");
-const { isValidEmail, isValidPassword } = require('../utils/validators');
-
+const { isValidEmail, isValidPassword } = require("../utils/validators");
 
 // ===============================================================
 // Inscription d'un nouvel utilisateur
@@ -21,15 +20,15 @@ const register = async (req, res) => {
 
     // Format email
     if (!isValidEmail(email)) {
-      return res.status(400).json({ 
-        message: 'Format d\'email invalide' 
+      return res.status(400).json({
+        message: "Format d'email invalide",
       });
     }
 
     // Longueur mot de passe
     if (!isValidPassword(mot_de_passe)) {
-      return res.status(400).json({ 
-        message: 'Le mot de passe doit contenir au moins 8 caractères' 
+      return res.status(400).json({
+        message: "Le mot de passe doit contenir au moins 8 caractères",
       });
     }
 
@@ -116,8 +115,6 @@ const getMe = (req, res) => {
 // Générer un token OAuth temporaire pour connexion apps externes
 // ================================================================
 const generateOAuthToken = async (req, res) => {
-  console.log("🔑 generateOAuthToken appelé");
-
   try {
     const userId = req.user?.userId || req.user?.id;
 
@@ -127,8 +124,6 @@ const generateOAuthToken = async (req, res) => {
         message: "Utilisateur non authentifié",
       });
     }
-
-    console.log("👤 Génération token OAuth pour userId:", userId);
 
     // Générer un token JWT temporaire (valide 5 minutes)
     const jwt = require("jsonwebtoken");
@@ -140,8 +135,6 @@ const generateOAuthToken = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "5m" }
     );
-
-    console.log("✅ Token OAuth généré:", oauthToken.substring(0, 30) + "...");
 
     res.status(200).json({
       success: true,

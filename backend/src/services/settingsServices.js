@@ -9,8 +9,6 @@ const db = require("../config/database");
 // ================================================================
 exports.getUserProfile = async (userId) => {
   try {
-    console.log("⚙️ getUserProfile appelé pour userId:", userId);
-
     const query = `
       SELECT 
         id,
@@ -32,12 +30,7 @@ exports.getUserProfile = async (userId) => {
 
     const user = result.rows[0];
 
-    console.log("✅ Profil récupéré:", {
-      id: user.id,
-      prenom: user.prenom,
-      nom: user.nom,
-      email: user.email,
-    });
+    
 
     return {
       id: user.id,

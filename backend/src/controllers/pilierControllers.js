@@ -102,15 +102,9 @@ class PilierControllers {
    * Body: { source, duration }
    */
   static async updateDuration(req, res) {
-    console.log("⏱️⏱️⏱️ CONTROLLER updateDuration appelé !");
-
     try {
       const userId = req.user?.userId || req.user?.id;
       const { source, duration } = req.body;
-
-      console.log("👤 userId:", userId);
-      console.log("📱 source:", source);
-      console.log("⏱️ duration:", duration);
 
       if (!source || !duration) {
         return res.status(400).json({

@@ -9,8 +9,6 @@ const Pilier = require("../models/pilier");
 // Récupérer et valider les activités Strava du jour
 // ================================================================
 exports.validateStrava = async (pilier, userId, today) => {
-  console.log("🏃 Validation Strava...");
-
   try {
     // ================================================================
     // 1. Vérifier et refresh le token si nécessaire
@@ -19,8 +17,6 @@ exports.validateStrava = async (pilier, userId, today) => {
     let accessToken = pilier.access_token;
 
     if (now > pilier.token_expires_at) {
-      console.log("🔄 Token Strava expiré, renouvellement...");
-
       const response = await axios.post("https://www.strava.com/oauth/token", {
         client_id: process.env.STRAVA_CLIENT_ID,
         client_secret: process.env.STRAVA_CLIENT_SECRET,
@@ -37,7 +33,6 @@ exports.validateStrava = async (pilier, userId, today) => {
       });
 
       accessToken = newTokens.access_token;
-      console.log("✅ Token Strava renouvelé");
     }
 
     // ================================================================
@@ -47,10 +42,7 @@ exports.validateStrava = async (pilier, userId, today) => {
     startOfDay.setHours(0, 0, 0, 0);
     const afterTimestamp = Math.floor(startOfDay.getTime() / 1000);
 
-    console.log(
-      "📅 Recherche activités après:",
-      new Date(afterTimestamp * 1000).toISOString()
-    );
+    
 
     const response = await axios.get(
       "https://www.strava.com/api/v3/athlete/activities",
@@ -66,7 +58,6 @@ exports.validateStrava = async (pilier, userId, today) => {
     );
 
     const activities = response.data;
-    console.log(`📊 ${activities.length} activité(s) Strava trouvée(s)`);
 
     // ================================================================
     // 3. Calculer la durée totale en minutes
@@ -75,18 +66,13 @@ exports.validateStrava = async (pilier, userId, today) => {
       return sum + Math.floor(act.moving_time / 60);
     }, 0);
 
-    console.log(`⏱️ Durée totale Strava: ${totalDuration} min`);
-
     // ================================================================
     // 4. Vérifier si l'objectif est atteint
     // ================================================================
     const target = pilier.objectif_config?.duree_minutes || 30;
     const validated = totalDuration >= target;
 
-    console.log(`🎯 Objectif Strava: ${target} min`);
-    console.log(
-      `${validated ? "✅" : "❌"} ${validated ? "VALIDÉ" : "NON VALIDÉ"}`
-    );
+    
 
     return {
       success: true,

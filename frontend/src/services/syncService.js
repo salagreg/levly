@@ -15,8 +15,6 @@ export const connectStrava = async () => {
   try {
     const token = await AsyncStorage.getItem("token");
 
-    console.log("🔵 Génération token OAuth pour Strava...");
-
     // Générer un token OAuth temporaire
     const response = await axios.post(
       `${API_BASE_URL}/auth/generate-oauth-token`,
@@ -29,21 +27,17 @@ export const connectStrava = async () => {
     );
 
     const oauthToken = response.data.oauthToken;
-    console.log("✅ Token OAuth reçu:", oauthToken.substring(0, 30) + "...");
 
     const fullUrl = `${API_BASE_URL}/strava/connect?token=${oauthToken}`;
-    console.log("🔗 URL complète:", fullUrl);
 
     const redirectUrl = Linking.createURL("strava-callback");
 
     // Ouvrir le navigateur avec le token OAuth temporaire
-    console.log("🌐 Ouverture navigateur Strava...");
+
     const result = await WebBrowser.openAuthSessionAsync(
       `${API_BASE_URL}/strava/connect?token=${oauthToken}`,
       redirectUrl
     );
-
-    console.log("Strava OAuth result:", result);
 
     // Accepter "dismiss" comme succès (l'utilisateur a fermé après connexion)
     if (result.type === "success" || result.type === "dismiss") {
@@ -66,8 +60,6 @@ export const connectSpotify = async () => {
   try {
     const token = await AsyncStorage.getItem("token");
 
-    console.log("🎧 Génération token OAuth pour Spotify...");
-
     // Générer un token OAuth temporaire
     const response = await axios.post(
       `${API_BASE_URL}/auth/generate-oauth-token`,
@@ -80,18 +72,15 @@ export const connectSpotify = async () => {
     );
 
     const oauthToken = response.data.oauthToken;
-    console.log("✅ Token OAuth reçu:", oauthToken.substring(0, 30) + "...");
 
     const redirectUri = Linking.createURL("spotify-callback");
 
     // Ouvrir le navigateur avec le token OAuth temporaire
-    console.log("🌐 Ouverture navigateur Spotify...");
+
     const result = await WebBrowser.openAuthSessionAsync(
       `${API_BASE_URL}/spotify/connect?token=${oauthToken}`,
       redirectUri
     );
-
-    console.log("Spotify OAuth result:", result);
 
     // Accepter "dismiss" comme succès
     if (result.type === "success" || result.type === "dismiss") {

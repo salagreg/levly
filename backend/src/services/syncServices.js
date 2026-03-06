@@ -9,8 +9,6 @@ const db = require("../config/database");
 // ================================================================
 exports.getConnectionStatus = async (userId) => {
   try {
-    console.log("🔄 getConnectionStatus appelé pour userId:", userId);
-
     // Vérifier si Strava est connecté
     const stravaQuery = `
       SELECT id_pilier, access_token
@@ -39,10 +37,7 @@ exports.getConnectionStatus = async (userId) => {
       spotifyResult.rows.length > 0 &&
       spotifyResult.rows[0].access_token !== null;
 
-    console.log("✅ Statut récupéré:", {
-      strava: stravaConnected,
-      spotify: spotifyConnected,
-    });
+    
 
     return {
       strava: stravaConnected,

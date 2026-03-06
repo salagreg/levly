@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Levly — Become Your Best Self</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900;1,9..144,700;1,9..144,900&display=swap" rel="stylesheet">
+<style>
+
+/* ──────────────────────────────────────────
+   DESIGN TOKENS
+────────────────────────────────────────── */
+:root {
+  --brand:       #5B7EBD;
+  --brand-dark:  #3d60a0;
+  --brand-light: #EEF3FB;
+  --brand-mid:   #C8D8F0;
+  --white:       #FFFFFF;
+  --cream:       #F8F6F2;
+  --cream2:      #F2EFE9;
+  --ink:         #1C1C2E;
+  --ink2:        #2E2E42;
+  --muted:       #6B7280;
+  --muted2:      #9CA3AF;
+  --border:      #E5E7EB;
+  --border2:     #D1D5DB;
+  --red-soft:    #FEE2E2;
+  --red:         #EF4444;
+  --radius:      20px;
+  --radius-sm:   12px;
+  --shadow-sm:   0 2px 12px rgba(91,126,189,0.10);
+  --shadow:      0 6px 28px rgba(91,126,189,0.13);
+  --shadow-lg:   0 20px 60px rgba(91,126,189,0.18);
+  --font-serif:  'Fraunces', Georgia, serif;
+  --font-sans:   'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+/* ──────────────────────────────────────────
+   BASE
+────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-sans);
+  background: var(--white);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+img { display: block; max-width: 100%; }
+a { text-decoration: none; }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: var(--brand-mid); border-radius: 2px; }
+
+/* ──────────────────────────────────────────
+   NAV
+────────────────────────────────────────── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 56px;
+  transition: all .35s ease;
+}
+nav.stuck {
+  background: rgba(255,255,255,.93);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 16px rgba(0,0,0,.06);
+  padding: 14px 56px;
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--ink); font-weight: 700; font-size: 18px;
+}
+.logo-img {
+  width: 34px; height: 34px; border-radius: 9px; overflow: hidden; flex-shrink: 0;
+}
+.logo-img img { width: 100%; height: 100%; object-fit: cover; }
+.nav-links {
+  display: flex; align-items: center; gap: 36px; list-style: none;
+}
+.nav-links a {
+  font-size: 14px; font-weight: 500; color: var(--muted);
+  transition: color .2s;
+}
+.nav-links a:hover { color: var(--ink); }
+.nav-btn {
+  background: var(--brand); color: var(--white) !important;
+  padding: 10px 24px; border-radius: 100px;
+  font-weight: 600; font-size: 14px;
+  transition: background .2s, transform .15s, box-shadow .2s !important;
+  box-shadow: 0 4px 16px rgba(91,126,189,.28);
+}
+.nav-btn:hover {
+  background: var(--brand-dark) !important; transform: translateY(-1px) !important;
+  box-shadow: 0 8px 24px rgba(91,126,189,.35) !important;
+  color: var(--white) !important;
+}
+
+/* ──────────────────────────────────────────
+   HERO
+────────────────────────────────────────── */
+#hero {
+  background: var(--cream);
+  padding: 136px 56px 0;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center;
+  position: relative; overflow: hidden;
+}
+/* soft ambient blobs */
+.blob {
+  position: absolute; border-radius: 50%;
+  filter: blur(90px); pointer-events: none;
+}
+.b1 { width:700px; height:700px; top:-180px; right:-120px;
+      background: rgba(91,126,189,.08); }
+.b2 { width:450px; height:450px; bottom:80px; left:-100px;
+      background: rgba(91,126,189,.06); }
+.b3 { width:320px; height:320px; top:40%; left:38%;
+      background: rgba(255,180,90,.04); }
+
+.hero-body {
+  position: relative; z-index:1;
+  text-align: center; max-width: 780px;
+  animation: fadeUp .9s ease both;
+}
+
+/* badge */
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 100px; padding: 7px 18px 7px 8px;
+  margin-bottom: 36px; box-shadow: var(--shadow-sm);
+}
+.badge-icon {
+  width: 28px; height: 28px; border-radius: 7px; overflow: hidden;
+}
+.badge-icon img { width:100%; height:100%; object-fit:cover; }
+.badge-text { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing:.2px; }
+.badge-dot  { width:6px; height:6px; background:#4ade80; border-radius:50%;
+              animation: pulse 2s ease infinite; }
+@keyframes pulse {
+  0%,100%{ opacity:1; transform:scale(1); }
+  50%{ opacity:.5; transform:scale(1.4); }
+}
+
+/* headline */
+.hero-h1 {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: clamp(50px, 7.5vw, 90px);
+  line-height: 1.02; letter-spacing: -2.5px;
+  color: var(--ink);
+  margin-bottom: 24px;
+}
+.hero-h1 em { font-style: italic; color: var(--brand); }
+
+.hero-p {
+  font-size: clamp(16px, 1.8vw, 19px);
+  color: var(--muted); font-weight: 400; line-height: 1.75;
+  max-width: 520px; margin: 0 auto 44px;
+}
+
+/* CTAs */
+.cta-row {
+  display: flex; gap: 14px;
+  justify-content: center; align-items: center;
+  flex-wrap: wrap; margin-bottom: 56px;
+}
+.btn-main {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--brand); color: var(--white);
+  padding: 15px 32px; border-radius: 100px;
+  font-size: 15px; font-weight: 600;
+  box-shadow: 0 6px 24px rgba(91,126,189,.30);
+  transition: all .2s;
+}
+.btn-main:hover {
+  background: var(--brand-dark); transform: translateY(-2px);
+  box-shadow: 0 10px 32px rgba(91,126,189,.40);
+  color: var(--white);
+}
+.btn-outline {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--white); color: var(--ink2);
+  padding: 15px 28px; border-radius: 100px;
+  font-size: 15px; font-weight: 500;
+  border: 1.5px solid var(--border2);
+  transition: all .2s;
+}
+.btn-outline:hover {
+  border-color: var(--brand); color: var(--brand);
+}
+
+/* proof pills */
+.proof {
+  display: flex; gap: 24px; justify-content: center; align-items: center;
+  flex-wrap: wrap; margin-bottom: 68px;
+}
+.proof-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--muted); font-weight: 500;
+}
+.proof-ico {
+  width: 28px; height: 28px;
+  background: var(--white); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.08);
+}
+.proof-div { width:1px; height:18px; background: var(--border2); }
+
+/* phone cluster */
+.phones {
+  position: relative; z-index:1;
+  display: flex; justify-content: center; align-items: flex-end; gap: 18px;
+}
+.ph {
+  border-radius: 30px; overflow: hidden;
+  border: 1.5px solid rgba(0,0,0,.07);
+  box-shadow: 0 24px 60px rgba(0,0,0,.14), 0 4px 14px rgba(0,0,0,.07);
+  transition: transform .4s ease;
+  background: var(--white);
+}
+.ph:hover { transform: translateY(-8px); }
+.ph img { width:100%; height:auto; }
+.ph-main   { width: 210px; }
+.ph-side   { width: 174px; margin-bottom: 22px; opacity: .87; }
+.ph-far    { width: 150px; margin-bottom: 40px; opacity: .62; }
+
+/* ──────────────────────────────────────────
+   MARQUEE STRIP
+────────────────────────────────────────── */
+.strip {
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 26px 0; overflow: hidden;
+}
+.strip-row {
+  display: flex; gap: 60px;
+  width: max-content;
+  animation: marquee 24s linear infinite;
+}
+.strip-item {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; font-weight: 600;
+  color: var(--muted2); white-space: nowrap; flex-shrink: 0;
+}
+.strip-item svg { opacity: .45; }
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ──────────────────────────────────────────
+   PROBLEM SECTION
+────────────────────────────────────────── */
+#problem {
+  background: var(--white);
+  padding: 120px 56px;
+}
+.prob-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 80px; align-items: center;
+}
+.lbl {
+  display: inline-block;
+  font-size: 11px; font-weight: 700; color: var(--brand);
+  letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px;
+}
+.h2 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: clamp(32px, 4vw, 52px);
+  line-height: 1.08; letter-spacing: -1.5px;
+  color: var(--ink); margin-bottom: 22px;
+}
+.h2 em { font-style: italic; color: var(--brand); }
+.body-txt {
+  font-size: 16px; color: var(--muted); line-height: 1.8; margin-bottom: 28px;
+}
+.prob-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.prob-list li {
+  display: flex; align-items: flex-start; gap: 12px;
+  font-size: 15px; color: var(--ink2); font-weight: 500;
+}
+.x-dot {
+  width: 22px; height: 22px; background: var(--red-soft);
+  color: var(--red); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; flex-shrink: 0; margin-top: 2px;
+}
+/* stat cards */
+.cards {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+}
+.card {
+  background: var(--cream); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px 20px;
+  transition: transform .2s, box-shadow .2s;
+}
+.card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.card-val {
+  font-family: var(--font-serif);
+  font-size: 44px; font-weight: 900;
+  color: var(--brand); letter-spacing: -2px;
+  line-height: 1; margin-bottom: 6px;
+}
+.card-lbl { font-size: 13px; color: var(--muted); font-weight: 500; line-height: 1.4; }
+.card.full {
+  grid-column: 1/-1; background: var(--brand);
+  display: flex; align-items: center; gap: 20px;
+}
+.card.full .card-val { color: var(--white); font-size: 54px; }
+.card.full .card-lbl { color: rgba(255,255,255,.75); font-size: 15px; }
+
+/* ──────────────────────────────────────────
+   FEATURES
+────────────────────────────────────────── */
+#features {
+  background: var(--cream);
+  padding: 120px 56px;
+}
+.feat-header {
+  text-align: center; max-width: 620px; margin: 0 auto 80px;
+}
+.feat-header .h2 { margin-bottom: 16px; }
+.sec-desc { font-size: 16px; color: var(--muted); line-height: 1.75; }
+
+/* feature rows */
+.feat-row {
+  max-width: 1100px; margin: 0 auto 80px;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 60px; align-items: center;
+  opacity: 0; transform: translateY(32px);
+  transition: opacity .7s ease, transform .7s ease;
+}
+.feat-row.vis { opacity: 1; transform: translateY(0); }
+.feat-row:last-child { margin-bottom: 0; }
+.feat-row.flip { direction: rtl; }
+.feat-row.flip > * { direction: ltr; }
+
+.feat-vis {
+  background: var(--white); border-radius: 24px;
+  border: 1px solid var(--border); box-shadow: var(--shadow);
+  overflow: hidden; aspect-ratio: 4/3;
+  display: flex; align-items: flex-end; justify-content: center;
+  position: relative; min-height: 340px;
+}
+.feat-vis-bg {
+  position: absolute; inset: 0;
+}
+.bg-blue  { background: linear-gradient(140deg, var(--brand-light) 0%, var(--white) 100%); }
+.bg-warm  { background: linear-gradient(140deg, #fff7ed 0%, var(--white) 100%); }
+.bg-green { background: linear-gradient(140deg, #f0fdf4 0%, var(--white) 100%); }
+.feat-phones {
+  position: relative; z-index:1;
+  display: flex; align-items: flex-end; justify-content: center;
+  gap: 14px; padding: 28px 20px 0; height: 100%;
+}
+.fph {
+  border-radius: 24px; overflow: hidden;
+  border: 1.5px solid rgba(0,0,0,.07);
+  box-shadow: 0 16px 48px rgba(0,0,0,.14);
+  flex-shrink: 0;
+}
+.fph img { width:100%; height:auto; }
+.fph-a { width: 148px; }
+.fph-b { width: 118px; opacity:.62; }
+
+.feat-content {}
+.feat-num {
+  font-family: var(--font-serif); font-size: 80px; font-weight: 900;
+  color: var(--brand-mid); line-height: 1; letter-spacing: -4px;
+  margin-bottom: -8px;
+}
+.feat-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--brand-light); color: var(--brand);
+  font-size: 12px; font-weight: 600;
+  padding: 5px 12px; border-radius: 100px;
+  margin-bottom: 14px;
+}
+.feat-title {
+  font-family: var(--font-serif); font-weight: 700;
+  font-size: clamp(26px, 3vw, 36px);
+  line-height: 1.1; letter-spacing: -1px;
+  color: var(--ink); margin-bottom: 16px;
+}
+.feat-desc {
+  font-size: 16px; color: var(--muted);
+  line-height: 1.8; margin-bottom: 24px;
+}
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 13px; background: var(--white);
+  border: 1px solid var(--border2); border-radius: 100px;
+  font-size: 12px; font-weight: 500; color: var(--ink2);
+}
+
+/* ──────────────────────────────────────────
+   ABOUT
+────────────────────────────────────────── */
+#about {
+  background: var(--white);
+  padding: 120px 56px;
+}
+.about-grid {
+  max-width: 1100px; margin: 0 auto;
+  display: grid; grid-template-columns: 1.1fr .9fr;
+  gap: 80px; align-items: start;
+}
+.story {
+  font-size: 16px; color: var(--muted);
+  line-height: 1.85; margin-bottom: 18px;
+}
+.story strong { color: var(--ink); font-weight: 600; }
+.story a { color: var(--brand); font-weight: 500; }
+.story a:hover { text-decoration: underline; }
+
+.hb-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--brand-light); border: 1px solid var(--brand-mid);
+  border-radius: 100px; padding: 8px 16px;
+  font-size: 12px; font-weight: 600; color: var(--brand);
+  margin: 6px 0 36px; transition: background .2s;
+}
+.hb-chip:hover { background: var(--brand-mid); }
+
+.link-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 18px; background: var(--cream);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  margin-bottom: 12px; color: inherit;
+  transition: all .2s;
+}
+.link-row:hover {
+  background: var(--brand-light); border-color: var(--brand-mid);
+  transform: translateX(4px);
+}
+.link-ico {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.link-info { flex:1; }
+.link-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+.link-sub  { font-size: 12px; color: var(--muted2); margin-top: 1px; }
+.link-arr  { font-size: 14px; color: var(--muted2); }
+
+/* aside cards */
+.aside-card {
+  background: var(--cream); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 26px;
+  margin-bottom: 14px;
+}
+.aside-card:last-child { margin-bottom: 0; }
+.card-ttl {
+  font-size: 10px; font-weight: 700; color: var(--muted2);
+  letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 18px;
+}
+.team-row { display: flex; align-items: center; gap: 14px; }
+.avatar {
+  width: 50px; height: 50px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand), #7ca7d8);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-sans); font-weight: 800; font-size: 16px;
+  color: var(--white); flex-shrink: 0;
+}
+.m-name  { font-size: 15px; font-weight: 600; color: var(--ink); }
+.m-role  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.m-links { display: flex; gap: 10px; margin-top: 6px; }
+.m-links a { font-size: 12px; font-weight: 500; color: var(--brand); }
+.m-links a:hover { text-decoration: underline; }
+
+.tech-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.tc {
+  padding: 5px 12px; background: var(--white);
+  border: 1px solid var(--border2); border-radius: 100px;
+  font-size: 12px; font-weight: 500; color: var(--ink2);
+}
+.tl { display: flex; flex-direction: column; gap: 14px; }
+.tl-item { display: flex; gap: 12px; align-items: flex-start; }
+.tl-dot  {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--brand);
+  margin-top: 6px; flex-shrink: 0;
+}
+.tl-txt { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.tl-txt strong { color: var(--ink); font-weight: 600; }
+
+/* ──────────────────────────────────────────
+   FOOTER
+────────────────────────────────────────── */
+footer {
+  background: var(--cream2);
+  border-top: 1px solid var(--border);
+  padding: 44px 56px;
+}
+.foot-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 20px;
+}
+.foot-logo { display: flex; align-items: center; gap: 10px; }
+.foot-logo-img { width: 30px; height: 30px; border-radius: 8px; overflow: hidden; }
+.foot-logo-img img { width:100%; }
+.foot-logo-name { font-weight: 700; font-size: 16px; color: var(--ink); }
+.foot-copy { font-size: 13px; color: var(--muted2); }
+.foot-links { display: flex; gap: 24px; }
+.foot-links a { font-size: 13px; color: var(--muted); transition: color .2s; }
+.foot-links a:hover { color: var(--ink); }
+
+/* ──────────────────────────────────────────
+   ANIMATIONS
+────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(22px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ──────────────────────────────────────────
+   RESPONSIVE
+────────────────────────────────────────── */
+@media (max-width: 960px) {
+  nav, nav.stuck { padding: 16px 24px; }
+  .nav-links { display: none; }
+  #hero         { padding: 118px 24px 0; }
+  #problem, #features, #about { padding: 80px 24px; }
+  footer        { padding: 36px 24px; }
+  .prob-inner, .feat-row, .about-grid {
+    grid-template-columns: 1fr; gap: 40px; direction: ltr !important;
+  }
+  .feat-row.flip { direction: ltr; }
+  .phones { gap: 10px; }
+  .ph-main { width: 168px; }
+  .ph-side { width: 138px; }
+  .ph-far  { display: none; }
+  .cards   { grid-template-columns: 1fr; }
+  .card.full { grid-column: 1; }
+}
+@media (max-width: 580px) {
+  .cta-row { flex-direction: column; }
+  .btn-main, .btn-outline { width:100%; justify-content:center; }
+  .proof-div { display:none; }
+  .proof { gap:14px; }
+  .foot-inner { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ NAV ══════════════════════════════════ -->
+<nav id="nav">
+  <a href="#hero" class="logo">
+    <div class="logo-img"><img src="icone_appli_levly.png" alt="Levly"></div>
+    <span>Levly</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">Fonctionnalités</a></li>
+    <li><a href="#about">À propos</a></li>
+    <li><a href="#" class="nav-btn">Accéder à l'app</a></li>
+  </ul>
+</nav>
+
+<!-- ══ HERO ══════════════════════════════════ -->
+<section id="hero">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+
+  <div class="hero-body">
+    <!-- badge -->
+    <div class="hero-badge">
+      <div class="badge-icon"><img src="icone_appli_levly.png" alt="Levly icon"></div>
+      <span class="badge-text">Application mobile · iOS &amp; Android</span>
+      <div class="badge-dot"></div>
+    </div>
+
+    <!-- headline -->
+    <h1 class="hero-h1">
+      Devenez la<br>
+      <em>meilleure version</em><br>
+      de vous-même.
+    </h1>
+
+    <p class="hero-p">
+      Levly synchronise automatiquement vos routines via Strava et Spotify, et vous récompense pour chaque effort. Zéro saisie, constance maximale.
+    </p>
+
+    <!-- CTAs -->
+    <div class="cta-row">
+      <a href="#" class="btn-main">
+        Accéder à l'application
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a href="#features" class="btn-outline">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+        Découvrir
+      </a>
+    </div>
+
+    <!-- proof -->
+    <div class="proof">
+      <div class="proof-item"><div class="proof-ico">🔗</div>Sync automatique</div>
+      <div class="proof-div"></div>
+      <div class="proof-item"><div class="proof-ico">🔥</div>Séries &amp; Tokens</div>
+      <div class="proof-div"></div>
+      <div class="proof-item"><div class="proof-ico">📊</div>Dashboard temps réel</div>
+    </div>
+  </div>
+
+  <!-- phones -->
+  <div class="phones">
+    <div class="ph ph-far">
+      <img src="ECRAN_2__Descriptif_1.png" alt="Levly descriptif">
+    </div>
+    <div class="ph ph-side">
+      <img src="ECRAN_4__Synchronisation_Applications.png" alt="Levly sync">
+    </div>
+    <div class="ph ph-main">
+      <img src="ECRAN_6__Tableau_de_bord.png" alt="Levly dashboard">
+    </div>
+    <div class="ph ph-side">
+      <img src="ECRAN_5__Dure_e_ta_ches_tracke_es.png" alt="Levly durées">
+    </div>
+    <div class="ph ph-far">
+      <img src="ECRAN_3__Inscription.png" alt="Levly inscription">
+    </div>
+  </div>
+</section>
+
+<!-- ══ STRIP ══════════════════════════════════ -->
+<div class="strip">
+  <div class="strip-row" id="strip">
+    <!-- items × 2 for seamless loop -->
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Strava &amp; Spotify</div>
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Zéro saisie manuelle</div>
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>5 badges dynamiques</div>
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>PostgreSQL &amp; Node.js</div>
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>OAuth 2.0 sécurisé</div>
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Dashboard temps réel</div>
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>React Native &amp; Expo</div>
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Strava &amp; Spotify</div>
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Zéro saisie manuelle</div>
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>5 badges dynamiques</div>
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>PostgreSQL &amp; Node.js</div>
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>OAuth 2.0 sécurisé</div>
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Dashboard temps réel</div>
+    <div class="strip-item"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>React Native &amp; Expo</div>
+  </div>
+</div>
+
+<!-- ══ PROBLEM ════════════════════════════════ -->
+<section id="problem">
+  <div class="prob-inner">
+    <div>
+      <span class="lbl">Le problème</span>
+      <h2 class="h2">90% abandonnent.<br><em>Pourquoi ?</em></h2>
+      <p class="body-txt">
+        Pas par manque de motivation — mais à cause de la friction. Tracker manuellement chaque activité, jongler entre plusieurs apps, ne jamais voir de récompense concrète... ça use.
+      </p>
+      <ul class="prob-list">
+        <li><div class="x-dot">✕</div>Saisie manuelle quotidienne épuisante</li>
+        <li><div class="x-dot">✕</div>Aucun feedback ni récompense immédiate</li>
+        <li><div class="x-dot">✕</div>Multiples apps sans vision unifiée</li>
+        <li><div class="x-dot">✕</div>Perte de motivation après 2–3 semaines</li>
+      </ul>
+    </div>
+    <div class="cards">
+      <div class="card full">
+        <div>
+          <div class="card-val">90%</div>
+          <div class="card-lbl">des personnes abandonnent leurs routines en moins de 3 semaines</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-val">0</div>
+        <div class="card-lbl">saisie manuelle avec Levly</div>
+      </div>
+      <div class="card">
+        <div class="card-val">2×</div>
+        <div class="card-lbl">plus de constance grâce à la gamification</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FEATURES ═══════════════════════════════ -->
+<section id="features">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="feat-header">
+      <span class="lbl">Fonctionnalités</span>
+      <h2 class="h2">Simple.<br><em>Automatique.</em> Motivant.</h2>
+      <p class="sec-desc">Trois piliers au cœur de l'expérience Levly.</p>
+    </div>
+
+    <!-- F1 -->
+    <div class="feat-row" id="fr1">
+      <div class="feat-vis">
+        <div class="feat-vis-bg bg-blue"></div>
+        <div class="feat-phones">
+          <div class="fph fph-b"><img src="ECRAN_4__Synchronisation_Applications.png" alt="Sync apps"></div>
+          <div class="fph fph-a"><img src="ECRAN_6__Tableau_de_bord.png" alt="Dashboard"></div>
+        </div>
+      </div>
+      <div class="feat-content">
+        <div class="feat-num">01</div>
+        <div class="feat-chip">🔗 Auto-sync</div>
+        <h3 class="feat-title">Synchronisation automatique</h3>
+        <p class="feat-desc">Connectez Strava et Spotify une seule fois. Levly détecte automatiquement vos activités et valide vos routines sans aucune action de votre part.</p>
+        <div class="pills">
+          <span class="pill">⚡ Temps réel</span>
+          <span class="pill">🎵 Spotify</span>
+          <span class="pill">🏃 Strava</span>
+          <span class="pill">🔐 OAuth 2.0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- F2 -->
+    <div class="feat-row flip" id="fr2">
+      <div class="feat-vis">
+        <div class="feat-vis-bg bg-warm"></div>
+        <div class="feat-phones">
+          <div class="fph fph-a"><img src="ECRAN_6__Tableau_de_bord.png" alt="Gamification"></div>
+          <div class="fph fph-b"><img src="ECRAN_2__Descriptif_1.png" alt="Onboarding"></div>
+        </div>
+      </div>
+      <div class="feat-content">
+        <div class="feat-num">02</div>
+        <div class="feat-chip">🎮 Gamification</div>
+        <h3 class="feat-title">Chaque effort récompensé</h3>
+        <p class="feat-desc">Tokens, série de jours consécutifs, 5 badges dynamiques — le système est conçu pour vous motiver sans jamais vous punir. Progresser devient naturellement engageant.</p>
+        <div class="pills">
+          <span class="pill">🔥 Séries</span>
+          <span class="pill">🪙 Tokens</span>
+          <span class="pill">🏆 5 Badges</span>
+          <span class="pill">📈 Niveaux</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- F3 -->
+    <div class="feat-row" id="fr3">
+      <div class="feat-vis">
+        <div class="feat-vis-bg bg-green"></div>
+        <div class="feat-phones">
+          <div class="fph fph-b"><img src="ECRAN_5__Dure_e_ta_ches_tracke_es.png" alt="Durées"></div>
+          <div class="fph fph-a"><img src="ECRAN_6__Tableau_de_bord.png" alt="Dashboard"></div>
+        </div>
+      </div>
+      <div class="feat-content">
+        <div class="feat-num">03</div>
+        <div class="feat-chip">📊 Dashboard</div>
+        <h3 class="feat-title">Tout en un coup d'œil</h3>
+        <p class="feat-desc">Barres de progression dynamiques, tokens cumulés, série du jour, tâches du jour — tout est visible dès l'ouverture de l'app et se met à jour instantanément.</p>
+        <div class="pills">
+          <span class="pill">📊 Stats hebdo</span>
+          <span class="pill">✅ Tâches du jour</span>
+          <span class="pill">🌍 Timezone smart</span>
+          <span class="pill">⚡ Auto-refresh</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ABOUT ══════════════════════════════════ -->
+<section id="about">
+  <div class="about-grid">
+    <!-- left -->
+    <div>
+      <span class="lbl">À propos</span>
+      <h2 class="h2" style="margin-bottom:28px">L'histoire<br><em>derrière Levly</em></h2>
+
+      <p class="story">Comme beaucoup, j'ai essayé des dizaines d'apps d'habitudes. <strong>J'abandonnais à chaque fois</strong> — pas par manque de motivation, mais à cause de la friction. Cocher manuellement chaque activité tous les jours devient vite une corvée.</p>
+      <p class="story">L'idée est née d'un constat simple : <strong>j'utilisais déjà Strava pour mes courses et Spotify au quotidien</strong>. Pourquoi devoir tout noter ailleurs ? La réponse évidente était l'auto-synchronisation.</p>
+      <p class="story">J'ai ajouté la gamification inspirée de Duolingo — les streaks et les tokens créent un <strong>engagement émotionnel réel</strong>. La peur de perdre sa série de 15 jours motive bien plus efficacement que n'importe quelle notification.</p>
+      <p class="story">Levly est mon <strong>projet de portfolio de fin de formation chez <a href="https://www.holbertonschool.com/" target="_blank">Holberton School</a></strong>. 7 semaines de développement solo, de décembre 2024 à mars 2026, avec React Native, Node.js, PostgreSQL et deux intégrations OAuth complètes.</p>
+
+      <a href="https://www.holbertonschool.com/" target="_blank" class="hb-chip">
+        🎓 Holberton School — Projet Portfolio →
+      </a>
+
+      <a href="https://github.com/salagreg/levly" target="_blank" class="link-row">
+        <div class="link-ico" style="background:#f3f4f6">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
+        </div>
+        <div class="link-info">
+          <div class="link-name">Dépôt GitHub du projet</div>
+          <div class="link-sub">github.com/salagreg/levly</div>
+        </div>
+        <div class="link-arr">→</div>
+      </a>
+
+      <a href="https://www.linkedin.com/in/salagreg" target="_blank" class="link-row">
+        <div class="link-ico" style="background:#e8f0fb">
+          <svg width="20" height="20" fill="#0a66c2" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        </div>
+        <div class="link-info">
+          <div class="link-name">LinkedIn — Grégory Sala</div>
+          <div class="link-sub">linkedin.com/in/salagreg</div>
+        </div>
+        <div class="link-arr">→</div>
+      </a>
+
+      <a href="https://github.com/salagreg" target="_blank" class="link-row">
+        <div class="link-ico" style="background:#f3f4f6">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
+        </div>
+        <div class="link-info">
+          <div class="link-name">GitHub — Profil personnel</div>
+          <div class="link-sub">github.com/salagreg</div>
+        </div>
+        <div class="link-arr">→</div>
+      </a>
+    </div>
+
+    <!-- right -->
+    <div>
+      <div class="aside-card">
+        <div class="card-ttl">L'équipe</div>
+        <div class="team-row">
+          <div class="avatar">GS</div>
+          <div>
+            <div class="m-name">Grégory Sala</div>
+            <div class="m-role">Développeur Full-Stack Mobile</div>
+            <div class="m-links">
+              <a href="https://www.linkedin.com/in/salagreg" target="_blank">LinkedIn</a>
+              <a href="https://github.com/salagreg" target="_blank">GitHub</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="aside-card">
+        <div class="card-ttl">Stack technique</div>
+        <div class="tech-row">
+          <span class="tc">React Native</span><span class="tc">Expo Router</span>
+          <span class="tc">Node.js</span><span class="tc">Express</span>
+          <span class="tc">PostgreSQL</span><span class="tc">Sequelize</span>
+          <span class="tc">JWT</span><span class="tc">OAuth 2.0</span>
+          <span class="tc">Strava API</span><span class="tc">Spotify API</span>
+        </div>
+      </div>
+
+      <div class="aside-card">
+        <div class="card-ttl">Timeline</div>
+        <div class="tl">
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-txt"><strong>Déc. 2024</strong> — Idée, cahier des charges, maquettes Figma</div></div>
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-txt"><strong>Jan. 2026</strong> — Auth JWT, architecture MVC, OAuth Strava + Spotify</div></div>
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-txt"><strong>Fév. 2026</strong> — Gamification complète, 9 écrans mobile</div></div>
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-txt"><strong>Mars 2026</strong> — Validation temps réel · <strong>Demo Day 18 mars</strong></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FOOTER ═════════════════════════════════ -->
+<footer>
+  <div class="foot-inner">
+    <a href="#hero" class="foot-logo">
+      <div class="foot-logo-img"><img src="icone_appli_levly.png" alt="Levly"></div>
+      <span class="foot-logo-name">Levly</span>
+    </a>
+    <span class="foot-copy">© 2026 Grégory Sala — Holberton School Portfolio</span>
+    <div class="foot-links">
+      <a href="#features">Fonctionnalités</a>
+      <a href="#about">À propos</a>
+      <a href="https://github.com/salagreg/levly" target="_blank">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Sticky nav
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => nav.classList.toggle('stuck', scrollY > 40));
+
+// Scroll reveal
+const io = new IntersectionObserver(
+  entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); }),
+  { threshold: 0.12 }
+);
+document.querySelectorAll('.feat-row').forEach(el => io.observe(el));
+
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a =>
+  a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+  })
+);
+</script>
+</body>
+</html>

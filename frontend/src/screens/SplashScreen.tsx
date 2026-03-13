@@ -3,21 +3,19 @@
 // ================================================================
 
 import React, { useEffect } from "react";
-import { View, Image, StyleSheet } from "react-native";
+import { View, Image, StyleSheet, Dimensions } from "react-native";
 import { router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 
 SplashScreen.preventAutoHideAsync();
 
+const { width } = Dimensions.get("window");
+
 export default function SplashScreenComponent() {
   useEffect(() => {
     async function prepare() {
       try {
-        // D'abord cacher le splash natif
         await SplashScreen.hideAsync();
-
-        // PUIS attendre 2 secondes sur notre écran
-
         await new Promise((resolve) => setTimeout(resolve, 3000));
       } finally {
         router.replace("/onboarding/step1");
@@ -30,9 +28,9 @@ export default function SplashScreenComponent() {
   return (
     <View style={styles.container}>
       <Image
-        source={require("../../assets/images/splash_screen.png")}
+        source={require("../../assets/images/icone_appli_levly.png")}
         style={styles.splashImage}
-        resizeMode="cover"
+        resizeMode="contain"
       />
     </View>
   );
@@ -41,10 +39,13 @@ export default function SplashScreenComponent() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1B3A6B",
+    backgroundColor: "#5B7EBD",
+    justifyContent: "center",
+    alignItems: "center",
   },
   splashImage: {
-    width: "100%",
-    height: "100%",
+    width: width * 0.45,
+    height: width * 0.45,
+    borderRadius: 28,
   },
 });

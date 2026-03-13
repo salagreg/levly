@@ -2,7 +2,7 @@
 // Écran des récompenses (badges)
 // ================================================================
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   Alert,
 } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { getBadges } from "../services/rewardsService";
 
@@ -18,22 +19,23 @@ const RewardsScreen = () => {
   const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadBadges();
-  }, []);
-
-  const loadBadges = async () => {
-    try {
-      setLoading(true);
-      const data = await getBadges();
-      setBadges(data.badges);
-    } catch (error) {
-      console.error("Erreur chargement badges:", error);
-      Alert.alert("Erreur", "Impossible de charger les badges");
-    } finally {
-      setLoading(false);
-    }
-  };
+  useFocusEffect(
+    useCallback(() => {
+      async function fetchData() {
+        try {
+          setLoading(true);
+          const data = await getBadges();
+          setBadges(data.badges);
+        } catch (error) {
+          console.error("Erreur chargement badges:", error);
+          Alert.alert("Erreur", "Impossible de charger les badges");
+        } finally {
+          setLoading(false);
+        }
+      }
+      fetchData();
+    }, [])
+  );
 
   if (loading) {
     return (

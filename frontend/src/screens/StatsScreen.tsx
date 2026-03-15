@@ -4,16 +4,13 @@
 
 import React, { useState, useCallback } from "react";
 import { useFocusEffect } from "expo-router";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  SafeAreaView,
-  Alert,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { getStats } from "../services/statsService";
+
+const BLUE = "#5B7EBD";
+const BG = "#E8EDF6";
 
 const StatsScreen = () => {
   const [weekData, setWeekData] = useState([]);
@@ -33,210 +30,222 @@ const StatsScreen = () => {
       setWeekData(data.weekData);
       setStats(data.stats);
     } catch (error) {
-      console.error("Erreur chargement stats:", error);
       Alert.alert("Erreur", "Impossible de charger les statistiques");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.loadingText}>Chargement...</Text>
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Statistiques</Text>
-          <Text style={styles.subtitle}>
+    <View style={{ flex: 1, backgroundColor: BG }}>
+      {/* Header */}
+      <SafeAreaView style={styles.headerWrapper} edges={["top"]}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Statistiques</Text>
+          <Text style={styles.headerSubtitle}>
             Suivez vos performances hebdomadaires
           </Text>
         </View>
+      </SafeAreaView>
 
-        {/* Carte Semaine */}
-        <View style={styles.weekCard}>
-          <Text style={styles.weekTitle}>Cette semaine</Text>
-
-          {/* Graphique */}
-          <View style={styles.weekGraph}>
-            {weekData.map((item, index) => (
-              <View key={index} style={styles.dayContainer}>
-                <View
-                  style={[
-                    styles.dayBox,
-                    item.validated
-                      ? styles.dayBoxValidated
-                      : styles.dayBoxFailed,
-                  ]}
-                >
-                  <Ionicons
-                    name={item.validated ? "checkmark" : "close"}
-                    size={20}
-                    color="#FFFFFF"
-                  />
-                </View>
-                <Text style={styles.dayLabel}>{item.day}</Text>
-                <Text style={styles.dateLabel}>{item.date}</Text>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {loading ? (
+          <Text style={styles.loadingText}>Chargement...</Text>
+        ) : (
+          <>
+            {/* Semaine */}
+            <View style={styles.card}>
+              <View style={styles.cardTitleRow}>
+                <Ionicons name="calendar-outline" size={20} color="#1A2B4A" />
+                <Text style={styles.cardTitle}>Cette semaine</Text>
               </View>
-            ))}
-          </View>
-        </View>
+              <View style={styles.weekGraph}>
+                {weekData.map((item, index) => (
+                  <View key={index} style={styles.dayContainer}>
+                    <View
+                      style={[
+                        styles.dayBox,
+                        item.validated ? styles.dayValidated : styles.dayFailed,
+                      ]}
+                    >
+                      <Ionicons
+                        name={item.validated ? "checkmark" : "close"}
+                        size={16}
+                        color="#fff"
+                      />
+                    </View>
+                    <Text style={styles.dayLabel}>{item.day}</Text>
+                    <Text style={styles.dateLabel}>{item.date}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
 
-        {/* Cartes Stats */}
-        <View style={styles.statsGrid}>
-          <StatCard
-            icon="checkbox-outline"
-            iconColor="#10B981"
-            value={stats?.routines_completees || 0}
-            label="Routines complétées"
-          />
-          <StatCard
-            icon="time-outline"
-            iconColor="#3B82F6"
-            value={stats?.temps_total || "0h 0m"}
-            label="Temps total"
-          />
-          <StatCard
-            icon="flame-outline"
-            iconColor="#F97316"
-            value={`${stats?.serie_actuelle || 0} jours`}
-            label="Série actuelle"
-          />
-          <StatCard
-            icon="stats-chart-outline"
-            iconColor="#8B5CF6"
-            value={`${stats?.taux_reussite || 0}%`}
-            label="Taux de réussite"
-          />
-        </View>
+            {/* Grid stats */}
+            <View style={styles.statsGrid}>
+              <StatCard
+                icon="checkbox-outline"
+                iconColor="#1DB954"
+                value={stats?.routines_completees || 0}
+                label="Routines complétées"
+              />
+              <StatCard
+                icon="time-outline"
+                iconColor={BLUE}
+                value={stats?.temps_total || "0h 0m"}
+                label="Temps total"
+              />
+              <StatCard
+                icon="flame-outline"
+                iconColor="#FC4C02"
+                value={`${stats?.serie_actuelle || 0}j`}
+                label="Série actuelle"
+              />
+              <StatCard
+                icon="stats-chart-outline"
+                iconColor="#F5A623"
+                value={`${stats?.taux_reussite || 0}%`}
+                label="Taux de réussite"
+              />
+            </View>
+          </>
+        )}
       </ScrollView>
-    </SafeAreaView>
-  );
-};
-
-// ================================================================
-// Composant StatCard
-// ================================================================
-const StatCard = ({ icon, iconColor, value, label }) => {
-  return (
-    <View style={styles.statCard}>
-      <Ionicons name={icon} size={32} color={iconColor} />
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
 };
 
+const StatCard = ({ icon, iconColor, value, label }) => (
+  <View style={styles.statCard}>
+    <View style={[styles.statIconBox, { backgroundColor: `${iconColor}18` }]}>
+      <Ionicons name={icon} size={26} color={iconColor} />
+    </View>
+    <Text style={styles.statValue}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
+  headerWrapper: {
+    backgroundColor: BLUE,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    shadowColor: "#1A3A6B",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
+    zIndex: 10,
+  },
+  headerContent: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 32,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.75)",
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 120,
+    gap: 14,
   },
   loadingText: {
     textAlign: "center",
-    marginTop: 50,
-    fontSize: 16,
-    color: "#64748B",
+    color: "#9AAED4",
+    marginTop: 40,
   },
-  header: {
-    padding: 20,
-    paddingTop: 10,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#1E293B",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#64748B",
-  },
-  weekCard: {
-    backgroundColor: "#FFFFFF",
-    margin: 20,
-    marginTop: 10,
-    padding: 20,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    padding: 18,
+    shadowColor: BLUE,
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 20,
+    elevation: 5,
   },
-  weekTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1E293B",
+  cardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     marginBottom: 20,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1A2B4A",
   },
   weekGraph: {
     flexDirection: "row",
-    justifyContent: "center",
-    gap: 6,
+    justifyContent: "space-between",
   },
   dayContainer: {
     alignItems: "center",
+    gap: 4,
   },
   dayBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 6,
   },
-  dayBoxValidated: {
-    backgroundColor: "#10B981",
-  },
-  dayBoxFailed: {
-    backgroundColor: "#EF4444",
-  },
+  dayValidated: { backgroundColor: "#1DB954" },
+  dayFailed: { backgroundColor: "#EF4444" },
   dayLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
-    color: "#64748B",
-    marginBottom: 2,
+    color: "#7A9ABF",
   },
   dateLabel: {
     fontSize: 10,
-    color: "#94A3B8",
+    color: "#B0C4DE",
   },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    padding: 10,
-    gap: 10,
+    gap: 12,
   },
   statCard: {
-    backgroundColor: "#FFFFFF",
-    width: "48%",
-    padding: 20,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 18,
+    width: "47.5%",
+    alignItems: "center",
+    gap: 8,
+    shadowColor: BLUE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  statIconBox: {
+    width: 52,
+    height: 52,
     borderRadius: 16,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    justifyContent: "center",
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#1E293B",
-    marginTop: 12,
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#1A2B4A",
   },
   statLabel: {
     fontSize: 12,
-    color: "#64748B",
+    color: "#7A9ABF",
     textAlign: "center",
-    marginTop: 4,
   },
 });
 

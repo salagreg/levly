@@ -1,5 +1,5 @@
 // ================================================================
-// Écran de synchronisation des applications externes
+// SyncScreen - Synchroniser les applications
 // ================================================================
 
 import React, { useState, useEffect } from "react";
@@ -8,9 +8,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
+  Image,
+  ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
@@ -19,10 +21,25 @@ import {
   getConnectionStatus,
 } from "../services/syncService";
 
-const SyncScreen = () => {
+const BLUE = "#5B7EBD";
+const BG = "#E8EDF6";
+
+const APP_LOGOS: Record<string, any> = {
+  spotify: require("../../assets/images/logo_spotify.png"),
+  strava: require("../../assets/images/logo_strava.png"),
+};
+
+const APP_BG: Record<string, string> = {
+  spotify: "#191414",
+  strava: "#FC4C02",
+};
+
+export default function SyncScreen() {
   const [stravaConnected, setStravaConnected] = useState(false);
   const [spotifyConnected, setSpotifyConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [expandedCulture, setExpandedCulture] = useState(true);
+  const [expandedSport, setExpandedSport] = useState(true);
 
   useEffect(() => {
     loadConnectionStatus();
@@ -34,8 +51,8 @@ const SyncScreen = () => {
       const status = await getConnectionStatus();
       setStravaConnected(status.strava);
       setSpotifyConnected(status.spotify);
-    } catch (error) {
-      console.error("Erreur chargement statut:", error);
+    } catch {
+      console.error("Erreur chargement statut");
     } finally {
       setLoading(false);
     }
@@ -44,10 +61,8 @@ const SyncScreen = () => {
   const handleConnectStrava = async () => {
     try {
       await connectStrava();
-      Alert.alert("Succès", "Strava connecté !");
-      await loadConnectionStatus(); // Recharger le statut
-    } catch (error) {
-      console.error("Erreur connexion Strava:", error);
+      await loadConnectionStatus();
+    } catch {
       Alert.alert("Erreur", "Impossible de connecter Strava");
     }
   };
@@ -55,19 +70,17 @@ const SyncScreen = () => {
   const handleConnectSpotify = async () => {
     try {
       await connectSpotify();
-      Alert.alert("Succès", "Spotify connecté !");
-      await loadConnectionStatus(); // Recharger le statut
-    } catch (error) {
-      console.error("Erreur connexion Spotify:", error);
+      await loadConnectionStatus();
+    } catch {
       Alert.alert("Erreur", "Impossible de connecter Spotify");
     }
   };
 
   const handleContinue = () => {
-    if (!stravaConnected || !spotifyConnected) {
+    if (!stravaConnected && !spotifyConnected) {
       Alert.alert(
         "Attention",
-        "Il est recommandé de connecter les deux applications pour profiter pleinement de Levly.",
+        "Connectez au moins une application pour profiter de Levly.",
         [
           {
             text: "Continuer quand même",
@@ -81,212 +94,269 @@ const SyncScreen = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.loadingText}>Chargement...</Text>
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Header */}
-        <Text style={styles.title}>Synchroniser vos applications</Text>
-        <Text style={styles.subtitle}>
-          Connectez vos applications pour suivre automatiquement vos routines
-        </Text>
-
-        {/* Section Culture */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionIcon}>📚</Text>
-            <Text style={styles.sectionTitle}>Culture & Développement</Text>
+    <View style={{ flex: 1, backgroundColor: BG }}>
+      {/* Header */}
+      <SafeAreaView style={styles.headerWrapper} edges={["top"]}>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.headerTitle}>
+              Synchroniser vos applications
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              Connectez vos apps pour suivre vos routines automatiquement
+            </Text>
           </View>
+        </View>
+      </SafeAreaView>
 
-          <AppCard
-            name="Spotify"
-            icon="musical-notes"
-            iconColor="#1DB954"
-            connected={spotifyConnected}
-            onPress={handleConnectSpotify}
-          />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Culture & Développement */}
+        <View style={styles.card}>
+          {/* Header accordéon */}
+          <TouchableOpacity
+            style={styles.accordionHeader}
+            onPress={() => setExpandedCulture(!expandedCulture)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.accordionEmoji}>📚</Text>
+            <Text style={styles.accordionTitle}>Culture & Développement</Text>
+            <Ionicons
+              name={expandedCulture ? "chevron-up" : "chevron-down"}
+              size={18}
+              color="#B0C4DE"
+            />
+          </TouchableOpacity>
+
+          {/* Contenu */}
+          {expandedCulture && (
+            <View style={styles.accordionContent}>
+              <AppRow
+                appKey="spotify"
+                name="Spotify"
+                connected={spotifyConnected}
+                onPress={handleConnectSpotify}
+              />
+            </View>
+          )}
         </View>
 
-        {/* Section Sport */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionIcon}>💪</Text>
-            <Text style={styles.sectionTitle}>Sport</Text>
-          </View>
+        {/* Sport */}
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.accordionHeader}
+            onPress={() => setExpandedSport(!expandedSport)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.accordionEmoji}>💪</Text>
+            <Text style={styles.accordionTitle}>Sport</Text>
+            <Ionicons
+              name={expandedSport ? "chevron-up" : "chevron-down"}
+              size={18}
+              color="#B0C4DE"
+            />
+          </TouchableOpacity>
 
-          <AppCard
-            name="Strava"
-            icon="bicycle-outline"
-            iconColor="#FC4C02"
-            connected={stravaConnected}
-            onPress={handleConnectStrava}
-          />
+          {expandedSport && (
+            <View style={styles.accordionContent}>
+              <AppRow
+                appKey="strava"
+                name="Strava"
+                connected={stravaConnected}
+                onPress={handleConnectStrava}
+              />
+            </View>
+          )}
         </View>
 
-        {/* Note */}
         <Text style={styles.note}>
           Vous pourrez modifier ces paramètres plus tard
         </Text>
-      </View>
+      </ScrollView>
 
-      {/* Bouton Continuer */}
-      <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-        <Text style={styles.continueText}>Continuer</Text>
+      {/* Footer */}
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.continueButton}
+          onPress={handleContinue}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.continueText}>Continuer</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ── AppRow ────────────────────────────────────────────────────────
+const AppRow = ({ appKey, name, connected, onPress }) => (
+  <View style={styles.appRow}>
+    <View style={[styles.appIconBox, { backgroundColor: APP_BG[appKey] }]}>
+      <Image
+        source={APP_LOGOS[appKey]}
+        style={styles.appIconImg}
+        resizeMode="contain"
+      />
+    </View>
+    <Text style={styles.appName}>{name}</Text>
+
+    {connected ? (
+      <View style={styles.connectedPill}>
+        <Ionicons name="checkmark" size={14} color="#fff" />
+        <Text style={styles.connectedText}>Connecté</Text>
+      </View>
+    ) : (
+      <TouchableOpacity style={styles.connectBtn} onPress={onPress}>
+        <Text style={styles.connectBtnText}>Se connecter</Text>
       </TouchableOpacity>
-    </SafeAreaView>
-  );
-};
-
-// ================================================================
-// Composant AppCard
-// ================================================================
-const AppCard = ({ name, icon, iconColor, connected, onPress }) => {
-  return (
-    <TouchableOpacity
-      style={[
-        styles.appCard,
-        connected ? styles.appCardConnected : styles.appCardDisconnected,
-      ]}
-      onPress={onPress}
-      disabled={connected}
-    >
-      <View style={[styles.appIcon, { backgroundColor: `${iconColor}20` }]}>
-        <Ionicons name={icon} size={32} color={iconColor} />
-      </View>
-
-      <View style={styles.appInfo}>
-        <Text style={styles.appName}>{name}</Text>
-        <Text style={styles.appStatus}>
-          {connected ? "Connecté" : "Non connecté"}
-        </Text>
-      </View>
-
-      {connected ? (
-        <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-      ) : (
-        <View style={styles.connectButton}>
-          <Text style={styles.connectButtonText}>Connecter</Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-};
+    )}
+  </View>
+);
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
+  // ── Header ──────────────────────────────────────────────
+  headerWrapper: {
+    backgroundColor: BLUE,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    shadowColor: "#1A3A6B",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
+    zIndex: 10,
   },
-  loadingText: {
-    textAlign: "center",
-    marginTop: 50,
-    fontSize: 16,
-    color: "#64748B",
+  headerContent: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 32,
   },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#1E293B",
-    marginBottom: 8,
-    marginTop: 20,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#64748B",
-    marginBottom: 32,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectionIcon: {
+  headerTitle: {
     fontSize: 24,
-    marginRight: 8,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 4,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1E293B",
+  headerSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.75)",
   },
-  appCard: {
+
+  // ── Scroll ──────────────────────────────────────────────
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+    gap: 14,
+  },
+
+  // ── Cards accordéon ──────────────────────────────────────
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    overflow: "hidden",
+    shadowColor: BLUE,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  accordionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    gap: 10,
   },
-  appCardConnected: {
-    borderColor: "#10B981",
+  accordionEmoji: { fontSize: 18 },
+  accordionTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1A2B4A",
   },
-  appCardDisconnected: {
-    borderColor: "#E2E8F0",
+  accordionContent: {
+    borderTopWidth: 0.5,
+    borderTopColor: "#E8EDF6",
+    paddingHorizontal: 18,
   },
-  appIcon: {
-    width: 56,
-    height: 56,
+
+  // ── App row ──────────────────────────────────────────────
+  appRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    gap: 14,
+  },
+  appIconBox: {
+    width: 44,
+    height: 44,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
+    flexShrink: 0,
   },
-  appInfo: {
-    flex: 1,
-  },
+  appIconImg: { width: 26, height: 26 },
   appName: {
-    fontSize: 16,
+    flex: 1,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#1E293B",
-    marginBottom: 4,
+    color: "#1A2B4A",
   },
-  appStatus: {
-    fontSize: 14,
-    color: "#64748B",
+  connectedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1DB954",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 12,
+    gap: 5,
   },
-  connectButton: {
-    backgroundColor: "#5B7EBD",
-    paddingHorizontal: 16,
+  connectedText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  connectBtn: {
+    backgroundColor: BLUE,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 12,
   },
-  connectButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
+  connectBtnText: {
+    color: "#fff",
+    fontSize: 13,
     fontWeight: "600",
   },
+
+  // ── Note ────────────────────────────────────────────────
   note: {
-    fontSize: 14,
-    color: "#94A3B8",
     textAlign: "center",
-    marginTop: 24,
+    fontSize: 13,
+    color: "#9AAED4",
+  },
+
+  // ── Footer ──────────────────────────────────────────────
+  footer: {
+    padding: 16,
+    paddingBottom: 32,
   },
   continueButton: {
-    backgroundColor: "#5B7EBD",
-    margin: 20,
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: BLUE,
+    paddingVertical: 17,
+    borderRadius: 16,
     alignItems: "center",
+    shadowColor: BLUE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
   continueText: {
-    color: "#FFFFFF",
-    fontSize: 16,
+    color: "#fff",
+    fontSize: 15,
     fontWeight: "600",
   },
 });
-
-export default SyncScreen;

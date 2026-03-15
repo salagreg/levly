@@ -8,6 +8,7 @@ import { register } from "../../services/authService";
 import CustomInput from "../common/CustomInput";
 import CustomButton from "../common/CustomButton";
 import validation from "../../utils/validation";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
@@ -36,15 +37,15 @@ const RegisterForm = () => {
 
   const handleRegister = async () => {
     const validationResult = validation.validateRegisterForm(formData);
-
+  
     if (!validationResult.isValid) {
       setErrors(validationResult.errors);
       return;
     }
-
+  
     try {
       setLoading(true);
-
+  
       const userData = {
         prenom: formData.prenom,
         nom: formData.nom,
@@ -52,13 +53,17 @@ const RegisterForm = () => {
         email: formData.email,
         mot_de_passe: formData.mot_de_passe,
       };
-
+  
       const response = await register(userData);
-
-      Alert.alert("Succès", "Inscription réussie !");
+  
+      // Stocker le prénom pour le dashboard
+      await AsyncStorage.setItem("prenom", response.user.prenom);
+  
+      // Naviguer une seule fois
       router.replace("/sync");
+  
     } catch (error) {
-      Alert.alert("Erreur", error);
+      Alert.alert("Erreur", error.message || "Erreur lors de l'inscription");
     } finally {
       setLoading(false);
     }

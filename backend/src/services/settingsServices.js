@@ -1,5 +1,5 @@
 // ================================================================
-// settingsServices.js - Logique métier des paramètres
+// Logique métier des paramètres
 // ================================================================
 
 const db = require("../config/database");
@@ -29,8 +29,6 @@ exports.getUserProfile = async (userId) => {
     }
 
     const user = result.rows[0];
-
-    
 
     return {
       id: user.id,

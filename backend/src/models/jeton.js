@@ -1,7 +1,6 @@
 // ==============================================================
 // Modèle de données pour les jetons (tokens)
 // ===============================================================
-
 const pool = require("../config/database");
 
 class Jeton {

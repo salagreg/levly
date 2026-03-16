@@ -11,9 +11,7 @@ const Pilier = require("../models/pilier");
 // ================================================================
 exports.validateSpotify = async (pilier, userId, today, timezone) => {
   try {
-    // ================================================================
-    // 1. Vérifier et refresh le token si nécessaire
-    // ================================================================
+    // Vérifier et refresh le token si nécessaire
     const currentTimestamp = Math.floor(Date.now() / 1000);
     let accessToken = pilier.access_token;
 
@@ -47,7 +45,7 @@ exports.validateSpotify = async (pilier, userId, today, timezone) => {
     }
 
     // ================================================================
-    // 2. Calculer le début de journée selon le fuseau utilisateur
+    // Calculer le début de journée selon le fuseau utilisateur
     // ================================================================
     const userTimezone = timezone || "UTC";
 
@@ -69,27 +67,19 @@ exports.validateSpotify = async (pilier, userId, today, timezone) => {
 
     const items = response.data.items || [];
 
-    // Filtrer uniquement les podcasts (type "episode")
-
-    items.forEach((item, index) => {
-      
-    });
+    items.forEach((item, index) => {});
 
     const musiques = items.filter((item) => item.track.type === "track");
 
-    // Pour les musiques, on compte TOUTES (pas de filtre de durée minimale)
-    // On additionne juste la durée totale
     const totalDuration = musiques.reduce((sum, item) => {
       return sum + Math.floor(item.track.duration_ms / 1000 / 60);
     }, 0);
 
     // ================================================================
-    // 6. Vérifier si l'objectif est atteint
+    // Vérifier si l'objectif est atteint
     // ================================================================
     const target = pilier.objectif_config?.duree_minutes || 30;
     const validated = totalDuration >= target;
-
-    
 
     return {
       success: true,

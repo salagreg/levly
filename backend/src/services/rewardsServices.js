@@ -1,15 +1,12 @@
 // ================================================================
-// rewardsServices.js - Logique métier des récompenses
+// Logique métier des récompenses
 // ================================================================
 
 const db = require("../config/database");
-
-// ================================================================
 // Récupérer les badges de l'utilisateur
-// ================================================================
 exports.getBadges = async (userId) => {
   try {
-    // 1. Récupérer la série actuelle de l'utilisateur
+    // Récupérer la série actuelle de l'utilisateur
     const serieQuery = `
       SELECT COALESCE(serie_actuelle, 0) as serie
       FROM serie
@@ -19,7 +16,7 @@ exports.getBadges = async (userId) => {
     const serieResult = await db.query(serieQuery, [userId]);
     const serie = serieResult.rows[0]?.serie || 0;
 
-    // 2. Récupérer le total de tokens
+    // Récupérer le total de tokens
     const tokensQuery = `
       SELECT COALESCE(SUM(montant_jeton), 0) as total_tokens
       FROM jeton
@@ -29,14 +26,14 @@ exports.getBadges = async (userId) => {
     const tokensResult = await db.query(tokensQuery, [userId]);
     const totalTokens = parseInt(tokensResult.rows[0]?.total_tokens || 0);
 
-    // 3. Définir les badges avec logique de déblocage
+    // Définir les badges avec logique de déblocage
     const badges = [
       {
         id: 1,
         name: "Première victoire",
         description: "Complétez votre première journée",
         icon: "🏆",
-        unlocked: serie >= 1, // Débloqué dès 1 jour de série
+        unlocked: serie >= 1,
       },
       {
         id: 2,

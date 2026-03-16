@@ -1,14 +1,12 @@
 // ================================================================
-// statsServices.js - Logique métier des statistiques
+// Logique métier des statistiques
 // ================================================================
 
 const db = require("../config/database");
 
 exports.getStats = async (userId) => {
   try {
-    // ----------------------------------------------------------------
-    // 1. Série actuelle (déjà réel, on garde)
-    // ----------------------------------------------------------------
+    // Série actuelle
     const serieQuery = `
       SELECT COALESCE(serie_actuelle, 0) as serie
       FROM serie
@@ -17,11 +15,9 @@ exports.getStats = async (userId) => {
     const serieResult = await db.query(serieQuery, [userId]);
     const serie = parseInt(serieResult.rows[0]?.serie || 0);
 
-    // ----------------------------------------------------------------
-    // 2. Données des 7 derniers jours (VRAI - depuis table activite)
-    // ----------------------------------------------------------------
-    // On demande à PostgreSQL : pour chaque jour des 7 derniers jours,
-    // est-ce qu'il existe AU MOINS UNE activité validée pour cet utilisateur ?
+    // ================================================================
+    // Données des 7 derniers jours
+    // ================================================================
     const weekQuery = `
       SELECT 
         date_activite::date as jour,
@@ -36,7 +32,6 @@ exports.getStats = async (userId) => {
     const weekResult = await db.query(weekQuery, [userId]);
 
     // Construire le tableau des 7 jours
-    // On doit afficher TOUS les 7 jours même si certains n'ont pas d'activité
     const jours = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
     const weekData = [];
 
@@ -55,15 +50,13 @@ exports.getStats = async (userId) => {
       weekData.push({
         day: jours[date.getDay()],
         date: `${date.getDate()}/${date.getMonth() + 1}`,
-        // Si le jour existe en BDD et est validé → true, sinon false
         validated: found ? found.validated : false,
       });
     }
 
-    // ----------------------------------------------------------------
-    // 3. Routines complétées (VRAI - nombre total d'activités validées)
-    // ----------------------------------------------------------------
-    // On compte simplement toutes les activités où activite_validee = true
+    // ================================================================
+    // Routines complétées
+    // ================================================================
     const routinesQuery = `
       SELECT COUNT(*) as total
       FROM activite
@@ -73,11 +66,9 @@ exports.getStats = async (userId) => {
     const routinesResult = await db.query(routinesQuery, [userId]);
     const routinesCompletees = parseInt(routinesResult.rows[0]?.total || 0);
 
-    // ----------------------------------------------------------------
-    // 4. Temps total (VRAI - somme des duree_minutes validées)
-    // ----------------------------------------------------------------
-    // On additionne toutes les minutes des activités validées
-    // puis on convertit en heures et minutes pour l'affichage
+    // ================================================================
+    // Temps total
+    // ================================================================
     const tempsQuery = `
       SELECT COALESCE(SUM(duree_minutes), 0) as total_minutes
       FROM activite
@@ -91,9 +82,9 @@ exports.getStats = async (userId) => {
     const minutes = totalMinutes % 60;
     const tempsTotal = `${heures}h ${minutes}m`;
 
-    // ----------------------------------------------------------------
-    // 5. Taux de réussite (VRAI - basé sur les 7 derniers jours réels)
-    // ----------------------------------------------------------------
+    // ================================================================
+    // Taux de réussite
+    // ================================================================
     const joursValidesCount = weekData.filter((d) => d.validated).length;
     const tauxReussite = Math.round((joursValidesCount / 7) * 100);
 

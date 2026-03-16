@@ -1,13 +1,11 @@
 // ==============================================================
 // Modèle de données pour les piliers
 // ===============================================================
-
 const pool = require("../config/database");
 
 // ===============================================================
 // Classe Pilier pour interagir avec la table "pilier" dans la base de données
 // ===============================================================
-
 class Pilier {
   static async create(pilierData) {
     const {

@@ -5,7 +5,7 @@
 const statsService = require("../services/statsServices");
 
 // ================================================================
-// GET /api/stats - Récupérer les statistiques
+// Récupérer les statistiques
 // ================================================================
 exports.getStats = async (req, res) => {
   try {

@@ -9,7 +9,6 @@ const StravaAPI = require("../integrations/stravaAPI");
 // ===============================================================
 // Contient la logique métier pour gérer les piliers
 // ===============================================================
-
 class PilierService {
   // Récupérer le nom user-friendly d'une application depuis les constantes
   static getAppDisplayName(sourceExterne) {
@@ -136,7 +135,7 @@ class PilierService {
         case "spotify":
           // Spotify : pas de révocation OAuth officielle
           // Le token expire automatiquement
-          
+
           break;
 
         default:

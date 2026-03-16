@@ -159,7 +159,6 @@ class SpotifyAPI {
   static async revokeAccess(accessToken) {
     // Spotify n'a pas d'endpoint public pour révoquer les tokens
     // La suppression côté Levly suffit
-    
   }
 }
 

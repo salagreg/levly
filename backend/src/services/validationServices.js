@@ -1,5 +1,5 @@
 // ================================================================
-// Service de validation quotidienne - ORCHESTRATEUR
+// Service de validation quotidienne
 // ================================================================
 
 const Pilier = require("../models/pilier");
@@ -14,9 +14,7 @@ const spotifyService = require("./spotifyServices");
 // ================================================================
 exports.validateDay = async (userId, timezone) => {
   try {
-    // ================================================================
-    // 1. Récupérer tous les piliers actifs
-    // ================================================================
+    // Récupérer tous les piliers actifs
     const piliers = await Pilier.findByUserId(userId);
 
     if (!piliers || piliers.length === 0) {
@@ -37,15 +35,13 @@ exports.validateDay = async (userId, timezone) => {
       };
     }
 
-    // ================================================================
-    // 2. Valider chaque pilier (TOUJOURS récupérer les données)
-    // ================================================================
+    // ============================================================
+    // Valider chaque pilier
+    // ============================================================
     const validationResults = [];
     const today = new Date().toISOString().split("T")[0];
 
     for (const pilier of piliersActifs) {
-      
-
       // Récupérer la validation existante d'aujourd'hui (si elle existe)
       const existingActivite = await Activite.findByUserAndDate(
         userId,
@@ -53,7 +49,6 @@ exports.validateDay = async (userId, timezone) => {
         pilier.id_pilier
       );
 
-      // TOUJOURS appeler l'API pour récupérer les données en temps réel
       let result = null;
 
       if (pilier.source_externe === "strava") {
@@ -83,21 +78,19 @@ exports.validateDay = async (userId, timezone) => {
         continue;
       }
 
-      // Vérifier si le pilier était DÉJÀ validé avant cet appel
+      // Vérifier si le pilier était déjà validé avant cet appel
       const wasAlreadyValidated = existingActivite?.activite_validee || false;
 
-      // Le pilier est-il validé MAINTENANT ?
+      // Le pilier est-il validé ?
       const isValidatedNow = result.validated;
 
       // Mettre à jour ou créer l'activité en base
       if (existingActivite) {
-        // Mise à jour
         await Activite.update(existingActivite.id_activite, {
           duree_minutes: result.current || 0,
           activite_validee: isValidatedNow,
         });
       } else {
-        // Création
         await Activite.create({
           id_utilisateur: userId,
           id_pilier: pilier.id_pilier,
@@ -110,14 +103,14 @@ exports.validateDay = async (userId, timezone) => {
 
       validationResults.push({
         ...result,
-        wasAlreadyValidated, // Était validé AVANT cet appel
-        validated: isValidatedNow, // Est validé MAINTENANT
-        alreadyValidated: false, // On supprime ce flag trompeur
+        wasAlreadyValidated,
+        validated: isValidatedNow,
+        alreadyValidated: false,
       });
     }
 
     // ================================================================
-    // 3. Compter les NOUVEAUX piliers validés
+    // Compter les NOUVEAUX piliers validés
     // ================================================================
     const newlyValidatedPiliers = validationResults.filter(
       (r) => r.validated && !r.wasAlreadyValidated
@@ -126,10 +119,8 @@ exports.validateDay = async (userId, timezone) => {
     const newValidatedCount = newlyValidatedPiliers.length;
     const totalPiliers = piliersActifs.length;
 
-    
-
     // ================================================================
-    // 4. Attribution des récompenses SEULEMENT pour les NOUVEAUX
+    // Attribution des récompenses
     // ================================================================
     let tokensEarned = 0;
     let bonusTokens = 0;
@@ -137,9 +128,7 @@ exports.validateDay = async (userId, timezone) => {
     let serieIncremented = false;
 
     if (newValidatedCount === 0) {
-      // Aucun NOUVEAU pilier validé
-
-      // Vérifier si TOUS les piliers sont validés (même si avant)
+      // Vérifier si tous les piliers sont validés
       const allValidatedNow = validationResults.every((r) => r.validated);
 
       if (!allValidatedNow) {
@@ -168,10 +157,8 @@ exports.validateDay = async (userId, timezone) => {
         : "validation_partielle";
 
       await Jeton.addTokens(userId, tokensEarned, origine);
-      
 
-      // Incrémenter la série (UNE SEULE FOIS par jour)
-
+      // Incrémenter la série
       let serie = await Serie.findByUserId(userId);
       if (!serie) {
         serie = await Serie.create(userId);
@@ -192,7 +179,6 @@ exports.validateDay = async (userId, timezone) => {
       } else {
         // Déjà incrémentée aujourd'hui → pas de changement
         newStreak = serie.serie_actuelle || 0;
-        
       }
 
       // Bonus de série (UNE SEULE FOIS par palier)
@@ -205,12 +191,12 @@ exports.validateDay = async (userId, timezone) => {
     }
 
     // ================================================================
-    // 5. Récupérer le solde total
+    // Récupérer le solde total
     // ================================================================
     const nouveauSolde = await Jeton.getBalance(userId);
 
     // ================================================================
-    // 6. Retourner le résultat complet
+    // Retourner le résultat complet
     // ================================================================
     const allValidatedNow = validationResults.every((r) => r.validated);
     const totalValidatedNow = validationResults.filter(
@@ -230,7 +216,7 @@ exports.validateDay = async (userId, timezone) => {
       success: true,
       validated: allValidatedNow,
       validatedCount: totalValidatedNow,
-      newlyValidatedCount: newValidatedCount, // Nouveaux validés
+      newlyValidatedCount: newValidatedCount,
       totalPiliers,
       tokensEarned,
       bonusTokens,
@@ -260,8 +246,6 @@ async function checkSerieBonus(userId, serieActuelle) {
 
   for (const palier of paliers) {
     if (serieActuelle === palier.jours) {
-      
-
       await Jeton.addTokens(
         userId,
         palier.bonus,

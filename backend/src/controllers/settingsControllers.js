@@ -5,7 +5,7 @@
 const settingsService = require("../services/settingsServices");
 
 // ================================================================
-// GET /api/settings/profile - Récupérer le profil
+// Récupérer le profil
 // ================================================================
 exports.getProfile = async (req, res) => {
   try {

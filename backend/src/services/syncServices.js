@@ -1,5 +1,5 @@
 // ================================================================
-// syncServices.js - Vérifier statut connexion apps
+// Vérifier statut connexion apps
 // ================================================================
 
 const db = require("../config/database");
@@ -36,8 +36,6 @@ exports.getConnectionStatus = async (userId) => {
     const spotifyConnected =
       spotifyResult.rows.length > 0 &&
       spotifyResult.rows[0].access_token !== null;
-
-    
 
     return {
       strava: stravaConnected,

@@ -10,7 +10,6 @@ const db = require("../config/database");
 // ================================================================
 const resetTachesQuotidiennes = () => {
   // Syntaxe cron: seconde minute heure jour mois jour-semaine
-  // "0 0 * * *" = Tous les jours à 00h00
   cron.schedule("0 0 * * *", async () => {
     try {
       // Supprimer TOUTES les tâches

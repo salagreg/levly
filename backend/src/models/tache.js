@@ -1,7 +1,6 @@
 // ================================================================
-// Modèle pour les tâches manuelles
+// Modèle pour les tâches du jour
 // ================================================================
-
 const db = require("../config/database");
 
 class Tache {

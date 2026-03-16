@@ -5,7 +5,7 @@
 const rewardsService = require("../services/rewardsServices");
 
 // ================================================================
-// GET /api/rewards - Récupérer les badges
+// Récupérer les badges
 // ================================================================
 exports.getBadges = async (req, res) => {
   try {

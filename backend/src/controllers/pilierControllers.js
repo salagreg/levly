@@ -12,7 +12,6 @@ class PilierControllers {
   /**
    * Connecter une application externe
    * POST /api/piliers
-   * Body: { nom_pilier, source_externe, duree_objectif_minutes }
    */
   static async connectApp(req, res) {
     try {
@@ -59,7 +58,6 @@ class PilierControllers {
   /**
    * Modifier la durée objectif d'une application
    * PATCH /api/piliers/:id/duree
-   * Body: { duree_objectif_minutes }
    */
   static async updateDureeObjectif(req, res) {
     try {
@@ -99,7 +97,6 @@ class PilierControllers {
   /**
    * Mettre à jour la durée d'un pilier (écran Définir durées)
    * PUT /api/piliers/duration
-   * Body: { source, duration }
    */
   static async updateDuration(req, res) {
     try {

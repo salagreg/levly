@@ -8,7 +8,6 @@ const { getPiliersNames, getApplicationsIds } = require("../constants/piliers");
 // ===============================================================
 // Schéma de validation pour la création d'un pilier
 // ===============================================================
-
 const createPilierSchema = Joi.object({
   nom_pilier: Joi.string()
     .valid(...getPiliersNames())
@@ -51,7 +50,6 @@ const createPilierSchema = Joi.object({
 // ===============================================================
 // Schéma de validation pour la mise à jour d'un pilier
 // ===============================================================
-
 const updatePilierSchema = Joi.object({
   nom_pilier: Joi.string()
     .valid(...getPiliersNames())
@@ -82,7 +80,6 @@ const updatePilierSchema = Joi.object({
 // ===============================================================
 // Schéma de validation pour les paramètres d'ID dans les routes
 // ===============================================================
-
 const idParamSchema = Joi.object({
   id: Joi.number().integer().positive().required().messages({
     "number.base": "L'ID doit être un nombre",

@@ -8,6 +8,7 @@ import { login } from "../../services/authService";
 import CustomInput from "../common/CustomInput";
 import CustomButton from "../common/CustomButton";
 import validation from "../../utils/validation";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LoginForm = () => {
   const [formData, setFormData] = useState({
@@ -42,10 +43,12 @@ const LoginForm = () => {
     try {
       setLoading(true);
 
-      // ✅ Appel correct avec formData
       const response = await login(formData.email, formData.mot_de_passe);
 
-      Alert.alert("Succès", "Connexion réussie !");
+      // Stocker le prénom pour le dashboard
+      await AsyncStorage.setItem("prenom", response.user.prenom);
+
+      // Naviguer une seule fois
       router.replace("/(tabs)");
     } catch (error) {
       Alert.alert(

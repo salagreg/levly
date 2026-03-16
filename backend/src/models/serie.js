@@ -1,7 +1,6 @@
 // ======================================================
-// Modèle de données pour les séries (streaks)
+// Modèle de données pour les séries
 // ======================================================
-
 const pool = require("../config/database");
 
 class Serie {

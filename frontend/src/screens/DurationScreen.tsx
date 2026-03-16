@@ -9,32 +9,43 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Dimensions,
   Alert,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import BackButton from "../components/common/BackButton";
 import { getConnectionStatus } from "../services/syncService";
 import { updatePilierDuration } from "../services/durationService";
 
-const { width } = Dimensions.get("window");
+const BLUE = "#5B7EBD";
+const BG = "#E8EDF6";
+
+const APP_LOGOS: Record<string, any> = {
+  spotify: require("../../assets/images/logo_spotify.png"),
+  strava: require("../../assets/images/logo_strava.png"),
+};
+
+const APP_BG: Record<string, string> = {
+  spotify: "#191414",
+  strava: "#FC4C02",
+};
+
+const APP_COLORS: Record<string, string> = {
+  spotify: "#1DB954",
+  strava: "#FC4C02",
+};
 
 export default function DurationScreen() {
-  // État des connexions
   const [spotifyConnected, setSpotifyConnected] = useState(false);
   const [stravaConnected, setStravaConnected] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  // Durées des applications
   const [spotifyDuration, setSpotifyDuration] = useState(30);
   const [stravaDuration, setStravaDuration] = useState(30);
 
-  // Charger les connexions depuis la DB
   useEffect(() => {
     loadConnectionStatus();
   }, []);
@@ -42,32 +53,15 @@ export default function DurationScreen() {
   const loadConnectionStatus = async () => {
     try {
       setLoading(true);
-
-      // Récupérer le statut des connexions depuis la DB
       const status = await getConnectionStatus();
-
       setSpotifyConnected(status.spotify || false);
       setStravaConnected(status.strava || false);
-
-      // Charger les durées depuis AsyncStorage (backup local)
-      const savedSpotifyDuration = await AsyncStorage.getItem(
-        "spotifyDuration"
-      );
-      const savedStravaDuration = await AsyncStorage.getItem("stravaDuration");
-
-      if (savedSpotifyDuration) {
-        setSpotifyDuration(parseInt(savedSpotifyDuration));
-      }
-
-      if (savedStravaDuration) {
-        setStravaDuration(parseInt(savedStravaDuration));
-      }
-    } catch (error) {
-      console.error("❌ Erreur chargement statut:", error);
-      Alert.alert(
-        "Erreur",
-        "Impossible de charger les connexions. Vérifiez votre connexion."
-      );
+      const savedSpotify = await AsyncStorage.getItem("spotifyDuration");
+      const savedStrava = await AsyncStorage.getItem("stravaDuration");
+      if (savedSpotify) setSpotifyDuration(parseInt(savedSpotify));
+      if (savedStrava) setStravaDuration(parseInt(savedStrava));
+    } catch {
+      Alert.alert("Erreur", "Impossible de charger les connexions.");
     } finally {
       setLoading(false);
     }
@@ -75,322 +69,350 @@ export default function DurationScreen() {
 
   const handleFinish = async () => {
     try {
-      // Sauvegarder les durées en base de données
-      if (spotifyConnected) {
+      if (spotifyConnected)
         await updatePilierDuration("spotify", spotifyDuration);
-      }
-
-      if (stravaConnected) {
-        await updatePilierDuration("strava", stravaDuration);
-      }
-
-      // Sauvegarder aussi dans AsyncStorage (backup local)
+      if (stravaConnected) await updatePilierDuration("strava", stravaDuration);
       await AsyncStorage.setItem("spotifyDuration", spotifyDuration.toString());
       await AsyncStorage.setItem("stravaDuration", stravaDuration.toString());
-
-      // Naviguer vers le dashboard
       router.replace("/(tabs)");
-    } catch (error) {
-      console.error("❌ Erreur sauvegarde durées:", error);
-      Alert.alert(
-        "Erreur",
-        "Impossible de sauvegarder les durées. Vérifiez votre connexion."
-      );
+    } catch {
+      Alert.alert("Erreur", "Impossible de sauvegarder les durées.");
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      {/* Header avec back button + titre */}
-      <View style={styles.header}>
-        <BackButton onPress={() => router.push("/sync")} />
-        <Text style={styles.headerTitle} adjustsFontSizeToFit numberOfLines={1}>
-          Définir les durées
-        </Text>
-        <View style={styles.headerSpacer} />
-      </View>
+    <View style={{ flex: 1, backgroundColor: BG }}>
+      {/* Header — même structure que les autres écrans */}
+      <SafeAreaView style={styles.headerWrapper} edges={["top"]}>
+        <View style={styles.headerContent}>
+          {/* Ligne back + titre sur la même ligne comme iOS natif */}
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() => router.push("/sync")}
+              style={styles.backBtn}
+            >
+              <Ionicons name="chevron-back" size={20} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Définir les durées</Text>
+          </View>
+          <Text style={styles.headerSubtitle}>
+            Personnalisez vos objectifs quotidiens
+          </Text>
+        </View>
+      </SafeAreaView>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#5B7EBD" />
+          <ActivityIndicator size="large" color={BLUE} />
           <Text style={styles.loadingText}>Chargement...</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.container}>
-          {/* Message informatif */}
-          <View style={styles.infoCard}>
-            <Ionicons name="information-circle" size={24} color="#5B7EBD" />
-            <Text style={styles.infoText}>
-              Définissez la durée quotidienne que vous souhaitez consacrer à
-              chaque activité
-            </Text>
-          </View>
-
-          {/* Section Applications connectées */}
-          {(spotifyConnected || stravaConnected) && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Applications connectées</Text>
-
-              {/* Spotify */}
-              {spotifyConnected && (
-                <AppDurationCard
-                  name="Spotify"
-                  icon="musical-notes"
-                  iconColor="#1DB954"
-                  duration={spotifyDuration}
-                  onDurationChange={setSpotifyDuration}
-                />
-              )}
-
-              {/* Strava */}
-              {stravaConnected && (
-                <AppDurationCard
-                  name="Strava"
-                  icon="bicycle-outline"
-                  iconColor="#FC4C02"
-                  duration={stravaDuration}
-                  onDurationChange={setStravaDuration}
-                />
-              )}
-            </View>
-          )}
-
-          {/* Message si aucune app connectée */}
-          {!spotifyConnected && !stravaConnected && (
-            <View style={styles.emptyState}>
-              <Ionicons name="alert-circle-outline" size={64} color="#D1D5DB" />
-              <Text style={styles.emptyText}>Aucune application connectée</Text>
-              <Text style={styles.emptySubtext}>
-                Retournez à l'écran précédent pour connecter Spotify ou Strava
+        <>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Info */}
+            <View style={styles.infoCard}>
+              <Ionicons name="information-circle" size={20} color={BLUE} />
+              <Text style={styles.infoText}>
+                Définissez la durée quotidienne à consacrer à chaque activité
               </Text>
             </View>
-          )}
 
-          {/* Bouton Terminé */}
-          <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
-            <Text style={styles.finishButtonText}>Terminé</Text>
-          </TouchableOpacity>
-        </ScrollView>
+            {/* Apps */}
+            {(spotifyConnected || stravaConnected) && (
+              <View style={styles.card}>
+                <View style={styles.cardTitleRow}>
+                  <Ionicons name="grid" size={20} color="#1A2B4A" />
+                  <Text style={styles.cardTitle}>Applications connectées</Text>
+                </View>
+
+                {spotifyConnected && (
+                  <AppDurationCard
+                    appKey="spotify"
+                    name="Spotify"
+                    duration={spotifyDuration}
+                    onDurationChange={setSpotifyDuration}
+                    border={false}
+                  />
+                )}
+                {stravaConnected && (
+                  <AppDurationCard
+                    appKey="strava"
+                    name="Strava"
+                    duration={stravaDuration}
+                    onDurationChange={setStravaDuration}
+                    border={spotifyConnected}
+                  />
+                )}
+              </View>
+            )}
+
+            {!spotifyConnected && !stravaConnected && (
+              <View style={styles.emptyState}>
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={48}
+                  color="#C8D7EE"
+                />
+                <Text style={styles.emptyText}>
+                  Aucune application connectée
+                </Text>
+                <Text style={styles.emptySubtext}>
+                  Retournez à l'écran précédent pour connecter Spotify ou Strava
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Bouton collé en bas */}
+          <SafeAreaView edges={["bottom"]} style={styles.footer}>
+            <TouchableOpacity
+              style={styles.finishButton}
+              onPress={handleFinish}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.finishButtonText}>Terminé</Text>
+            </TouchableOpacity>
+          </SafeAreaView>
+        </>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
-// ================================================================
-// Composant AppDurationCard
-// ================================================================
-
 interface AppDurationCardProps {
+  appKey: string;
   name: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
   duration: number;
   onDurationChange: (value: number) => void;
+  border: boolean;
 }
 
 function AppDurationCard({
+  appKey,
   name,
-  icon,
-  iconColor,
   duration,
   onDurationChange,
+  border,
 }: AppDurationCardProps) {
+  const logo = APP_LOGOS[appKey];
+  const bg = APP_BG[appKey];
+  const color = APP_COLORS[appKey];
+
   return (
-    <View style={styles.appCard}>
-      {/* Header */}
-      <View style={styles.appHeader}>
+    <View style={[styles.appRow, border && styles.appRowBorder]}>
+      <View style={styles.appTop}>
         <View style={styles.appLeft}>
-          <View
-            style={[
-              styles.appIconContainer,
-              { backgroundColor: iconColor + "15" },
-            ]}
-          >
-            <Ionicons name={icon} size={24} color={iconColor} />
+          <View style={[styles.appIconBox, { backgroundColor: bg }]}>
+            <Image
+              source={logo}
+              style={styles.appIconImg}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.appName}>{name}</Text>
         </View>
-        <Text style={styles.durationValue}>{duration} min</Text>
+        <Text style={[styles.durationValue, { color }]}>{duration} min</Text>
       </View>
-
-      {/* Slider */}
-      <View style={styles.sliderContainer}>
-        <Text style={styles.sliderLabel}>Durée quotidienne</Text>
-        <Slider
-          style={styles.slider}
-          minimumValue={10}
-          maximumValue={60}
-          step={5}
-          value={duration}
-          onValueChange={onDurationChange}
-          minimumTrackTintColor={iconColor}
-          maximumTrackTintColor="#E5E7EB"
-          thumbTintColor={iconColor}
-        />
-        <View style={styles.sliderMinMax}>
-          <Text style={styles.sliderMinMaxText}>10 min</Text>
-          <Text style={styles.sliderMinMaxText}>60 min</Text>
-        </View>
+      <Slider
+        style={styles.slider}
+        minimumValue={10}
+        maximumValue={60}
+        step={5}
+        value={duration}
+        onValueChange={onDurationChange}
+        minimumTrackTintColor={color}
+        maximumTrackTintColor="#E8EDF6"
+        thumbTintColor={color}
+      />
+      <View style={styles.sliderMinMax}>
+        <Text style={styles.sliderMinMaxText}>10 min</Text>
+        <Text style={styles.sliderMinMaxText}>60 min</Text>
       </View>
     </View>
   );
 }
 
-// ================================================================
-// Styles
-// ================================================================
-
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
+  // ── Header ──────────────────────────────────────────────
+  headerWrapper: {
+    backgroundColor: BLUE,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    shadowColor: "#1A3A6B",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
+    zIndex: 10,
   },
-  header: {
+  headerContent: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 32,
+    gap: 6,
+  },
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    gap: 10,
+    marginBottom: 4,
+  },
+  backBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
-    color: "#1B3A6B",
-    flex: 1,
-    textAlign: "center",
-    marginHorizontal: 10,
+    color: "#fff",
   },
-  headerSpacer: {
-    width: 40,
+  headerSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.75)",
+    paddingLeft: 40, // aligné sous le titre
   },
+
+  // ── Loading ─────────────────────────────────────────────
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    gap: 12,
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#6B7280",
+  loadingText: { color: "#9AAED4", fontSize: 15 },
+
+  // ── Scroll ──────────────────────────────────────────────
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 24,
+    gap: 14,
   },
-  container: {
-    padding: 20,
-    paddingTop: 10,
-    paddingBottom: 40,
-  },
+
+  // ── Info card ───────────────────────────────────────────
   infoCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EEF2FF",
-    borderRadius: 12,
+    backgroundColor: "#fff",
+    borderRadius: 20,
     padding: 16,
-    marginBottom: 24,
+    gap: 12,
+    shadowColor: BLUE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   infoText: {
     flex: 1,
-    fontSize: 14,
-    color: "#1B3A6B",
-    marginLeft: 12,
+    fontSize: 13,
+    color: BLUE,
     lineHeight: 20,
   },
-  section: {
-    marginBottom: 30,
+
+  // ── Card ────────────────────────────────────────────────
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    shadowColor: BLUE,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
   },
-  sectionTitle: {
-    fontSize: 18,
+  cardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#E8EDF6",
+  },
+  cardTitle: {
+    fontSize: 15,
     fontWeight: "600",
-    color: "#1B3A6B",
-    marginBottom: 16,
+    color: "#1A2B4A",
   },
-  appCard: {
-    backgroundColor: "#FAFAFA",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+
+  // ── App rows ────────────────────────────────────────────
+  appRow: { paddingVertical: 14 },
+  appRowBorder: {
+    borderTopWidth: 0.5,
+    borderTopColor: "#E8EDF6",
   },
-  appHeader: {
+  appTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   appLeft: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 12,
   },
-  appIconContainer: {
-    width: 44,
-    height: 44,
+  appIconBox: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
+  appIconImg: { width: 24, height: 24 },
   appName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#1B3A6B",
+    color: "#1A2B4A",
   },
   durationValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#5B7EBD",
   },
-  sliderContainer: {
-    marginTop: 8,
-  },
-  sliderLabel: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 8,
-  },
-  slider: {
-    width: "100%",
-    height: 40,
-  },
+  slider: { width: "100%", height: 36 },
   sliderMinMax: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 4,
   },
-  sliderMinMaxText: {
-    fontSize: 12,
-    color: "#9CA3AF",
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#6B7280",
-    marginTop: 16,
-  },
+  sliderMinMaxText: { fontSize: 11, color: "#B0C4DE" },
+
+  // ── Empty ───────────────────────────────────────────────
+  emptyState: { alignItems: "center", paddingVertical: 60, gap: 8 },
+  emptyText: { fontSize: 15, color: "#7A9ABF", fontWeight: "500" },
   emptySubtext: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    marginTop: 8,
+    fontSize: 13,
+    color: "#9AAED4",
     textAlign: "center",
     paddingHorizontal: 20,
   },
+
+  // ── Footer collé en bas ─────────────────────────────────
+  footer: {
+    backgroundColor: "transparent",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
   finishButton: {
-    backgroundColor: "#5B7EBD",
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: BLUE,
+    paddingVertical: 17,
+    borderRadius: 16,
     alignItems: "center",
-    marginTop: 20,
-    shadowColor: "#5B7EBD",
+    shadowColor: BLUE,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
   finishButtonText: {
-    color: "#FFFFFF",
-    fontSize: 17,
+    color: "#fff",
+    fontSize: 15,
     fontWeight: "600",
   },
 });

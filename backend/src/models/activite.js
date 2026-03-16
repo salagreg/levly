@@ -1,3 +1,6 @@
+// ==============================================================
+// Modèle de données pour les activités des utilisateurs
+// ===============================================================
 const pool = require("../config/database");
 
 class Activite {

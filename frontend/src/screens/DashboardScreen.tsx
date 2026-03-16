@@ -16,14 +16,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import {
   GestureHandlerRootView,
   Swipeable,
 } from "react-native-gesture-handler";
-import quotes from "../data/quotes.json";
 import {
   getDashboard,
   getTaches,
@@ -34,752 +35,636 @@ import {
 } from "../services/dashboardService";
 
 const { width } = Dimensions.get("window");
+const BLUE = "#5B7EBD";
+const BG = "#E8EDF6";
+
+const APP_LOGOS: Record<string, any> = {
+  spotify: require("../../assets/images/logo_spotify.png"),
+  strava: require("../../assets/images/logo_strava.png"),
+};
+
+const APP_COLORS: Record<string, string> = {
+  spotify: "#1DB954",
+  strava: "#FC4C02",
+};
+
+const APP_BG: Record<string, string> = {
+  spotify: "#191414",
+  strava: "#FC4C02",
+};
+
+type App = {
+  name: string;
+  current: number;
+  target: number;
+  icon: string;
+  iconColor: string;
+};
+
+type Task = {
+  id: number;
+  text: string;
+  completed: boolean;
+  category: string;
+};
 
 export default function DashboardScreen() {
-  // États pour les données
+  const [prenom, setPrenom] = useState("");
   const [tokens, setTokens] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [quote, setQuote] = useState({ text: "", author: "" });
-  const [apps, setApps] = useState([]);
-  const [tasks, setTasks] = useState([]);
+  const [apps, setApps] = useState<App[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // États pour le modal d'ajout de tâche
   const [modalVisible, setModalVisible] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [creatingTask, setCreatingTask] = useState(false);
 
-  // Charger les données au montage du composant
   useEffect(() => {
+    loadPrenom();
     loadDashboardData();
-    loadQuoteOfTheDay();
   }, []);
 
-  // Fonction pour charger les données du dashboard
+  const loadPrenom = async () => {
+    const stored = await AsyncStorage.getItem("prenom");
+    if (stored) setPrenom(stored);
+  };
+
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       const data = await getDashboard();
-
-      // Mettre à jour les tokens, streak et apps
       setTokens(data.tokens || 0);
       setStreak(data.streak || 0);
       setApps(data.apps || []);
-
-      // ✅ Charger les tâches (déjà supprimées par le CRON si nouvelle journée)
       const tachesData = await getTaches();
-
-      // Mapper le format
-      const mappedTasks = tachesData.map((tache: any) => ({
-        id: tache.id_tache,
-        text: tache.titre,
-        completed: tache.completee,
-        category: "Personnel",
-      }));
-
-      setTasks(mappedTasks);
-    } catch (error) {
-      console.error("Erreur chargement dashboard:", error);
-      Alert.alert(
-        "Erreur",
-        "Impossible de charger les données. Vérifiez que le backend est démarré."
+      setTasks(
+        tachesData.map((t: any) => ({
+          id: t.id_tache,
+          text: t.titre,
+          completed: t.completee,
+          category: "Personnel",
+        }))
       );
+    } catch {
+      Alert.alert("Erreur", "Impossible de charger les données.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Charger la citation du jour
-  const loadQuoteOfTheDay = () => {
-    const dayOfYear = Math.floor(
-      (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) /
-        86400000
-    );
-    const quoteIndex = dayOfYear % quotes.length;
-    setQuote(quotes[quoteIndex]);
-  };
-
-  // Cocher/décocher une tâche
   const handleToggleTask = async (taskId: number) => {
     try {
-      const currentTask = tasks.find((task) => task.id === taskId);
-      if (!currentTask) return;
-
-      const newCompletedState = !currentTask.completed;
-
-      // Optimistic update
+      const task = tasks.find((t) => t.id === taskId);
+      if (!task) return;
+      const newState = !task.completed;
       setTasks((prev) =>
-        prev.map((task) =>
-          task.id === taskId ? { ...task, completed: newCompletedState } : task
+        prev.map((t) => (t.id === taskId ? { ...t, completed: newState } : t))
+      );
+      await toggleTache(taskId, newState);
+    } catch {
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, completed: !t.completed } : t
         )
       );
-
-      // Appel API
-      await toggleTache(taskId, newCompletedState);
-    } catch (error) {
-      console.error("Erreur toggle task:", error);
-
-      // Rollback en cas d'erreur
-      setTasks((prev) =>
-        prev.map((task) =>
-          task.id === taskId ? { ...task, completed: !task.completed } : task
-        )
-      );
-
-      Alert.alert("Erreur", "Impossible de mettre à jour la tâche");
     }
   };
 
-  // Ouvrir le modal d'ajout
-  const handleOpenAddModal = () => {
-    setNewTaskTitle("");
-    setModalVisible(true);
-  };
-
-  // Créer une nouvelle tâche
   const handleCreateTask = async () => {
-    if (!newTaskTitle.trim()) {
-      Alert.alert("Erreur", "Veuillez saisir un titre pour la tâche");
-      return;
-    }
-
+    if (!newTaskTitle.trim()) return;
     try {
       setCreatingTask(true);
-
-      // Appel API
       await createTache(newTaskTitle.trim());
-
-      // Recharger les tâches
       await loadDashboardData();
-
-      // Fermer le modal
       setModalVisible(false);
       setNewTaskTitle("");
-
-      Alert.alert("Succès", "Tâche ajoutée ! 🎉");
-    } catch (error) {
-      console.error("Erreur création tâche:", error);
+    } catch {
       Alert.alert("Erreur", "Impossible de créer la tâche");
     } finally {
       setCreatingTask(false);
     }
   };
 
-  // Supprimer une tâche
   const handleDeleteTask = async (taskId: number) => {
-    Alert.alert(
-      "Supprimer la tâche",
-      "Êtes-vous sûr de vouloir supprimer cette tâche ?",
-      [
-        {
-          text: "Annuler",
-          style: "cancel",
+    Alert.alert("Supprimer", "Supprimer cette tâche ?", [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Supprimer",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setTasks((prev) => prev.filter((t) => t.id !== taskId));
+            await deleteTache(taskId);
+          } catch {
+            await loadDashboardData();
+          }
         },
-        {
-          text: "Supprimer",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              // Optimistic update
-              setTasks((prev) => prev.filter((task) => task.id !== taskId));
-
-              // Appel API
-              await deleteTache(taskId);
-
-              Alert.alert("Succès", "Tâche supprimée ! 🗑️");
-            } catch (error) {
-              console.error("Erreur suppression tâche:", error);
-
-              // Rollback
-              await loadDashboardData();
-
-              Alert.alert("Erreur", "Impossible de supprimer la tâche");
-            }
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
-  // Bouton de suppression (affiché lors du swipe)
-  const renderRightActions = (progress: any, dragX: any, taskId: number) => {
+  const renderRightActions = (_: any, dragX: any, taskId: number) => {
     const scale = dragX.interpolate({
       inputRange: [-80, 0],
       outputRange: [1, 0],
       extrapolate: "clamp",
     });
-
     return (
       <TouchableOpacity
         style={styles.deleteButton}
         onPress={() => handleDeleteTask(taskId)}
       >
         <Animated.View style={{ transform: [{ scale }] }}>
-          <Ionicons name="trash" size={24} color="#FFFFFF" />
+          <Ionicons name="trash" size={20} color="#FFF" />
         </Animated.View>
       </TouchableOpacity>
     );
   };
 
-  // Valider la journée
   const handleValidateDay = async () => {
     try {
       const response = await validateDay();
-
-      // IMPORTANT : Recharger TOUTES les données du dashboard
       await loadDashboardData();
-
       Alert.alert(
         response.data.journee_complete ? "Bravo ! 🎉" : "Bien joué ! 💪",
         `${response.data.piliers_valides}/${response.data.total_piliers} objectifs atteints\n\n` +
           `💰 Tokens gagnés : +${response.data.tokens_gagnes}\n` +
-          `💰 Solde total : ${response.data.solde_tokens}\n` +
           `🔥 Série : ${response.data.serie} jour(s)`
       );
-    } catch (error) {
-      console.error("❌ Erreur handleValidateDay:", error);
+    } catch {
       Alert.alert("Erreur", "Impossible de valider la journée");
     }
   };
 
+  const getAppLogo = (app: App) => APP_LOGOS[app.name?.toLowerCase()] || null;
+  const getAppColor = (app: App) => APP_COLORS[app.name?.toLowerCase()] || BLUE;
+  const getAppBg = (app: App) => APP_BG[app.name?.toLowerCase()] || BLUE;
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        {/* BLOC FIXE */}
-        <View style={styles.fixedHeader}>
-          {/* Titre + Stats */}
-          <View style={styles.topRow}>
-            <Text
-              style={styles.headerTitle}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-            >
-              Tableau de bord
-            </Text>
-
-            <View style={styles.statBadge}>
-              <Ionicons name="flame" size={16} color="#FFFFFF" />
-              <Text style={styles.statValue}>{streak}</Text> ← SÉRIE
-            </View>
-
-            <View style={[styles.statBadge, styles.statBadgeStreak]}>
-              <Ionicons name="disc" size={16} color="#FFFFFF" />
-              <Text style={styles.statValue}>{tokens}</Text> ← TOKENS
-            </View>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: BG }}>
+      {/* ── HEADER ── */}
+      <SafeAreaView style={styles.headerWrapper} edges={["top"]}>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.greeting}>Bonjour,</Text>
+            <Text style={styles.userName}>{prenom || "..."} 👋</Text>
           </View>
-
-          {/* Citation */}
-          <View style={styles.quoteContainer}>
-            <Text style={styles.quoteText}>"{quote.text}"</Text>
-            <Text style={styles.quoteAuthor}>— {quote.author}</Text>
+          <View style={styles.badges}>
+            <View style={styles.badge}>
+              <Image
+                source={require("../../assets/images/flamme.png")}
+                style={styles.badgeIcon}
+              />
+              <Text style={styles.badgeValue}>{streak}</Text>
+            </View>
+            <View style={styles.badge}>
+              <Image
+                source={require("../../assets/images/star.png")}
+                style={styles.badgeIcon}
+              />
+              <Text style={styles.badgeValue}>{tokens}</Text>
+            </View>
           </View>
         </View>
+      </SafeAreaView>
 
-        {/* SCROLLABLE */}
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Applications connectées */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="apps" size={22} color="#1B3A6B" />
-              <Text style={styles.sectionTitle}>Applications connectées</Text>
-            </View>
+      {/* ── SCROLL ── */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Card Applications connectées */}
+        <View style={styles.card}>
+          <View style={styles.cardTitleRow}>
+            <Ionicons name="grid" size={20} color="#1A2B4A" />
+            <Text style={styles.cardTitle}>Applications connectées</Text>
+          </View>
 
-            {apps.map((app, index) => (
-              <View key={index} style={styles.appCard}>
-                <View style={styles.appHeader}>
+          {apps.map((app, index) => {
+            const logo = getAppLogo(app);
+            const barColor = getAppColor(app);
+            const bgColor = getAppBg(app);
+            const pct = Math.min((app.current / app.target) * 100, 100);
+
+            return (
+              <View
+                key={index}
+                style={[
+                  styles.appRow,
+                  index < apps.length - 1 && styles.appRowBorder,
+                ]}
+              >
+                <View style={styles.appTop}>
                   <View style={styles.appLeft}>
                     <View
-                      style={[
-                        styles.appIcon,
-                        { backgroundColor: app.iconColor + "15" },
-                      ]}
+                      style={[styles.appIconBox, { backgroundColor: bgColor }]}
                     >
-                      <Ionicons
-                        name={app.icon as any}
-                        size={24}
-                        color={app.iconColor}
-                      />
+                      {logo ? (
+                        <Image
+                          source={logo}
+                          style={styles.appIconImg}
+                          resizeMode="contain"
+                        />
+                      ) : (
+                        <Ionicons name="apps" size={20} color="#fff" />
+                      )}
                     </View>
                     <Text style={styles.appName}>{app.name}</Text>
                   </View>
                   <Text style={styles.appTime}>
-                    {app.current}/{app.target} min
+                    {app.current} / {app.target} min
                   </Text>
                 </View>
-
-                <View style={styles.progressBarContainer}>
+                <View style={styles.progressTrack}>
                   <View
                     style={[
-                      styles.progressBar,
-                      {
-                        width: `${Math.min(
-                          (app.current / app.target) * 100,
-                          100
-                        )}%`,
-                        backgroundColor: app.iconColor,
-                      },
+                      styles.progressFill,
+                      { width: `${pct}%`, backgroundColor: barColor },
                     ]}
                   />
                 </View>
               </View>
-            ))}
+            );
+          })}
+        </View>
 
-            {/* Bouton Valider */}
+        {/* Bouton Mettre à jour */}
+        <TouchableOpacity
+          style={styles.ctaButton}
+          onPress={handleValidateDay}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.ctaText}>Mettre à jour</Text>
+        </TouchableOpacity>
+
+        {/* Card Tâches du jour */}
+        <View style={styles.card}>
+          <View style={styles.cardTitleRow}>
+            <Ionicons name="checkbox" size={22} color="#1B3A6B" />
+            <Text style={[styles.cardTitle, { flex: 1 }]}>Tâches du jour</Text>
             <TouchableOpacity
-              style={styles.validateButton}
-              onPress={handleValidateDay}
+              onPress={() => {
+                setNewTaskTitle("");
+                setModalVisible(true);
+              }}
             >
-              <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-              <Text style={styles.validateButtonText}>Valider ma journée</Text>
+              <Ionicons name="add-circle" size={26} color={BLUE} />
             </TouchableOpacity>
           </View>
 
-          {/* Séparateur */}
-          <View style={styles.separator} />
-
-          {/* Tâches du jour */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="checkbox" size={22} color="#1B3A6B" />
-              <Text style={styles.sectionTitle}>Tâches du jour</Text>
-
-              {/* Bouton + pour ajouter */}
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={handleOpenAddModal}
-              >
-                <Ionicons name="add-circle" size={28} color="#5B7EBD" />
-              </TouchableOpacity>
+          {loading ? (
+            <Text style={styles.loadingText}>Chargement...</Text>
+          ) : tasks.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="checkmark-done" size={44} color="#C8D7EE" />
+              <Text style={styles.emptyText}>
+                Aucune tâche pour aujourd'hui
+              </Text>
+              <Text style={styles.emptySubtext}>
+                Appuyez sur + pour ajouter une tâche
+              </Text>
             </View>
-
-            {loading ? (
-              <Text style={styles.loadingText}>Chargement...</Text>
-            ) : tasks.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="checkmark-done" size={48} color="#D1D5DB" />
-                <Text style={styles.emptyText}>
-                  Aucune tâche pour aujourd'hui
-                </Text>
-                <Text style={styles.emptySubtext}>
-                  Appuyez sur + pour ajouter une tâche
-                </Text>
-              </View>
-            ) : (
-              tasks.map((task) => (
-                <Swipeable
-                  key={task.id}
-                  renderRightActions={(progress, dragX) =>
-                    renderRightActions(progress, dragX, task.id)
-                  }
-                  overshootRight={false}
+          ) : (
+            tasks.map((task, index) => (
+              <Swipeable
+                key={task.id}
+                renderRightActions={(p, d) => renderRightActions(p, d, task.id)}
+                overshootRight={false}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.taskRow,
+                    index < tasks.length - 1 && styles.taskRowBorder,
+                  ]}
+                  onPress={() => handleToggleTask(task.id)}
+                  activeOpacity={0.7}
                 >
-                  <TouchableOpacity
-                    style={styles.taskCard}
-                    onPress={() => handleToggleTask(task.id)}
-                    activeOpacity={0.7}
+                  <View
+                    style={[
+                      styles.checkbox,
+                      task.completed && styles.checkboxDone,
+                    ]}
                   >
-                    <View
+                    {task.completed && (
+                      <Ionicons name="checkmark" size={13} color="#fff" />
+                    )}
+                  </View>
+                  <View style={styles.taskContent}>
+                    <Text
                       style={[
-                        styles.checkbox,
-                        task.completed && styles.checkboxCompleted,
+                        styles.taskText,
+                        task.completed && styles.taskDone,
                       ]}
                     >
-                      {task.completed && (
-                        <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-                      )}
-                    </View>
+                      {task.text}
+                    </Text>
+                    <Text style={styles.taskCategory}>{task.category}</Text>
+                  </View>
+                </TouchableOpacity>
+              </Swipeable>
+            ))
+          )}
+        </View>
+      </ScrollView>
 
-                    <View style={styles.taskContent}>
-                      <Text
-                        style={[
-                          styles.taskText,
-                          task.completed && styles.taskTextCompleted,
-                        ]}
-                      >
-                        {task.text}
-                      </Text>
-                      <Text style={styles.taskCategory}>{task.category}</Text>
-                    </View>
-                  </TouchableOpacity>
-                </Swipeable>
-              ))
-            )}
-          </View>
-        </ScrollView>
-
-        {/* Modal d'ajout de tâche */}
-        <Modal
-          visible={modalVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setModalVisible(false)}
+      {/* ── MODAL ── */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.modalOverlay}
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              width: "100%",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+            activeOpacity={1}
+            onPress={() => setModalVisible(false)}
           >
             <TouchableOpacity
-              style={styles.modalBackdrop}
+              style={styles.modalBox}
               activeOpacity={1}
-              onPress={() => setModalVisible(false)}
+              onPress={(e) => e.stopPropagation()}
             >
-              <TouchableOpacity
-                style={styles.modalContent}
-                activeOpacity={1}
-                onPress={(e) => e.stopPropagation()}
-              >
-                <Text style={styles.modalTitle}>Nouvelle tâche</Text>
-
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ex: Faire la vaisselle"
-                  value={newTaskTitle}
-                  onChangeText={setNewTaskTitle}
-                  autoFocus
-                  maxLength={100}
-                />
-
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => setModalVisible(false)}
-                  >
-                    <Text style={styles.cancelButtonText}>Annuler</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.createButton]}
-                    onPress={handleCreateTask}
-                    disabled={creatingTask}
-                  >
-                    <Text style={styles.createButtonText}>
-                      {creatingTask ? "Création..." : "Ajouter"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Nouvelle tâche</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Ex: Faire la vaisselle"
+                placeholderTextColor="#9AAED4"
+                value={newTaskTitle}
+                onChangeText={setNewTaskTitle}
+                autoFocus
+                maxLength={100}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.btnCancel}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.btnCancelText}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.btnCreate}
+                  onPress={handleCreateTask}
+                  disabled={creatingTask}
+                >
+                  <Text style={styles.btnCreateText}>
+                    {creatingTask ? "Création..." : "Ajouter"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </TouchableOpacity>
-          </KeyboardAvoidingView>
-        </Modal>
-      </SafeAreaView>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
     </GestureHandlerRootView>
   );
 }
 
-// ================================================================
-// Styles
-// ================================================================
-
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
+  // ── Header ──────────────────────────────────────────────
+  headerWrapper: {
+    backgroundColor: BLUE,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    shadowColor: "#1A3A6B",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
+    zIndex: 10,
   },
-  fixedHeader: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 32,
   },
-  topRow: {
+  greeting: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.75)",
+    marginBottom: 2,
+  },
+  userName: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  badges: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 4,
+  },
+  badge: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 20,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
   },
-  headerTitle: {
-    fontSize: width < 375 ? 18 : 22,
+  badgeIcon: {
+    width: 20,
+    height: 20,
+  },
+  badgeValue: {
+    fontSize: 13,
     fontWeight: "700",
-    color: "#1B3A6B",
-    flex: 1,
-    paddingRight: 12,
+    color: "#fff",
   },
-  statsRow: {
+
+  // ── Scroll ──────────────────────────────────────────────
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 120,
+    gap: 14,
+  },
+
+  // ── Cards ───────────────────────────────────────────────
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    padding: 18,
+    shadowColor: BLUE,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  cardTitleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-  },
-  statBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F59E0B",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-  },
-  statBadgeStreak: {
-    backgroundColor: "#6B7280",
-  },
-  statValue: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginLeft: 6,
-  },
-  quoteContainer: {
-    backgroundColor: "#EEF2FF",
-    padding: 16,
-    borderRadius: 12,
-  },
-  quoteText: {
-    fontSize: 14,
-    fontStyle: "italic",
-    color: "#374151",
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  quoteAuthor: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontWeight: "600",
-    textAlign: "right",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-  section: {
-    marginBottom: 8,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
     marginBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1B3A6B",
-    marginLeft: 10,
-    flex: 1,
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1A2B4A",
   },
-  addButton: {
-    padding: 4,
+
+  // ── Apps ────────────────────────────────────────────────
+  appRow: { paddingVertical: 12 },
+  appRowBorder: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#E8EDF6",
   },
-  appCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  appHeader: {
+  appTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   appLeft: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 12,
   },
-  appIcon: {
+  appIconBox: {
     width: 44,
     height: 44,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
+  appIconImg: { width: 26, height: 26 },
   appName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#1B3A6B",
+    color: "#1A2B4A",
   },
   appTime: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#5B7EBD",
+    fontSize: 14,
+    fontWeight: "600",
+    color: BLUE,
   },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 4,
+  progressTrack: {
+    height: 7,
+    backgroundColor: "#E8EDF6",
+    borderRadius: 99,
     overflow: "hidden",
   },
-  progressBar: {
-    height: "100%",
-    borderRadius: 4,
-  },
-  validateButton: {
-    flexDirection: "row",
+  progressFill: { height: "100%", borderRadius: 99 },
+
+  // ── CTA ─────────────────────────────────────────────────
+  ctaButton: {
+    backgroundColor: BLUE,
+    borderRadius: 16,
+    paddingVertical: 17,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#5B7EBD",
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginTop: 12,
-    shadowColor: "#5B7EBD",
+    shadowColor: BLUE,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  validateButtonText: {
-    color: "#FFFFFF",
-    fontSize: 17,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: "#E5E7EB",
-    marginVertical: 24,
-  },
-  loadingText: {
-    textAlign: "center",
-    color: "#6B7280",
-    fontSize: 16,
-    marginTop: 20,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#6B7280",
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    marginTop: 8,
-  },
-  taskCard: {
+  ctaText: { color: "#fff", fontSize: 15, fontWeight: "600" },
+
+  // ── Tasks ───────────────────────────────────────────────
+  taskRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  taskRowBorder: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#E8EDF6",
   },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
-    borderColor: "#D1D5DB",
+    borderColor: "#C8D7EE",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    flexShrink: 0,
   },
-  checkboxCompleted: {
-    backgroundColor: "#10B981",
-    borderColor: "#10B981",
-  },
-  taskContent: {
-    flex: 1,
-  },
-  taskText: {
-    fontSize: 16,
-    color: "#1B3A6B",
-    marginBottom: 4,
-  },
-  taskTextCompleted: {
-    textDecorationLine: "line-through",
-    color: "#9CA3AF",
-  },
-  taskCategory: {
-    fontSize: 13,
-    color: "#6B7280",
-  },
+  checkboxDone: { backgroundColor: BLUE, borderColor: BLUE },
+  taskContent: { flex: 1 },
+  taskText: { fontSize: 14, fontWeight: "500", color: "#1A2B4A" },
+  taskDone: { textDecorationLine: "line-through", color: "#C8D7EE" },
+  taskCategory: { fontSize: 11, color: "#9AAED4", marginTop: 2 },
   deleteButton: {
     backgroundColor: "#EF4444",
     justifyContent: "center",
     alignItems: "center",
-    width: 80,
+    width: 72,
     borderRadius: 12,
-    marginBottom: 12,
+    marginVertical: 4,
   },
-  // Modal styles
+
+  // ── Empty ───────────────────────────────────────────────
+  loadingText: { textAlign: "center", color: "#9AAED4", marginTop: 20 },
+  emptyState: { alignItems: "center", paddingVertical: 32 },
+  emptyText: {
+    fontSize: 15,
+    color: "#7A9ABF",
+    marginTop: 12,
+    fontWeight: "500",
+  },
+  emptySubtext: { fontSize: 13, color: "#9AAED4", marginTop: 6 },
+
+  // ── Modal ───────────────────────────────────────────────
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "center",
     alignItems: "center",
   },
-  modalBackdrop: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+  modalBox: {
+    backgroundColor: "#fff",
+    borderRadius: 24,
     padding: 24,
     width: width - 40,
-    maxWidth: 400,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 10,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#1B3A6B",
-    marginBottom: 20,
+    color: "#1A2B4A",
+    marginBottom: 16,
   },
-  input: {
+  modalInput: {
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#C8D7EE",
     borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: "#1B3A6B",
+    padding: 14,
+    fontSize: 15,
+    color: "#1A2B4A",
     marginBottom: 20,
   },
-  modalButtons: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  modalButton: {
+  modalButtons: { flexDirection: "row", gap: 12 },
+  btnCancel: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
+    backgroundColor: "#F0F4FB",
   },
-  cancelButton: {
-    backgroundColor: "#F3F4F6",
+  btnCancelText: { color: "#7A9ABF", fontSize: 15, fontWeight: "600" },
+  btnCreate: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    backgroundColor: BLUE,
   },
-  cancelButtonText: {
-    color: "#6B7280",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  createButton: {
-    backgroundColor: "#5B7EBD",
-  },
-  createButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  btnCreateText: { color: "#fff", fontSize: 15, fontWeight: "600" },
 });

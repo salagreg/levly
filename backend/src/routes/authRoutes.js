@@ -18,7 +18,11 @@ router.post("/login", authControllers.login);
  * @route   POST /api/auth/generate-oauth-token
  * @desc    Générer un token OAuth temporaire pour connexion apps externes
  */
-router.post("/generate-oauth-token", verifyToken, authControllers.generateOAuthToken);
+router.post(
+  "/generate-oauth-token",
+  verifyToken,
+  authControllers.generateOAuthToken
+);
 
 // ===============================================================
 // Routes protégées (nécessitent un token JWT valide)

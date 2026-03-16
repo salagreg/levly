@@ -1,5 +1,5 @@
 // ================================================================
-// dashboardServices.js - Logique métier du dashboard
+// Logique métier du dashboard
 // ================================================================
 
 const Jeton = require("../models/jeton");
@@ -8,24 +8,18 @@ const Pilier = require("../models/pilier");
 const Tache = require("../models/tache");
 
 // ================================================================
-// Récupérer les données du dashboard (100% dynamique)
+// Récupérer les données du dashboard
 // ================================================================
 exports.getDashboardData = async (userId) => {
   try {
-    // ================================================================
-    // 1. Récupérer les tokens (solde total)
-    // ================================================================
+    // Récupérer les tokens (solde total)
     const tokens = await Jeton.getBalance(userId);
 
-    // ================================================================
-    // 2. Récupérer la série
-    // ================================================================
+    // Récupérer la série
     const serieResult = await Serie.findByUserId(userId);
     const streak = serieResult?.serie_actuelle || 0;
 
-    // ================================================================
-    // 3. Récupérer les piliers connectés
-    // ================================================================
+    // Récupérer les piliers connectés
     const piliers = await Pilier.findByUserId(userId);
 
     // Date du jour (format YYYY-MM-DD)
@@ -34,8 +28,6 @@ exports.getDashboardData = async (userId) => {
     // Mapper les piliers pour le frontend
     const apps = await Promise.all(
       piliers.map(async (pilier) => {
-        
-
         // Extraire la durée depuis objectif_config
         const targetDuration =
           pilier.objectif_config?.duree_minutes ||
@@ -53,8 +45,6 @@ exports.getDashboardData = async (userId) => {
         // Récupérer current depuis l'activité du jour
         const current = activiteToday?.duree_minutes || 0;
         const validated = activiteToday?.activite_validee || false;
-
-        
 
         // Mapper les icônes et couleurs selon la source
         let icon = "apps";
@@ -82,13 +72,11 @@ exports.getDashboardData = async (userId) => {
       })
     );
 
-    // ================================================================
-    // 4. Récupérer les tâches manuelles (100% dynamique depuis DB)
-    // ================================================================
+    // Récupérer les tâches du jour
     const taches = await Tache.findByUser(userId);
 
     // ================================================================
-    // 5. Retourner TOUTES les données du dashboard
+    // Retourner les données du dashboard
     // ================================================================
     const response = {
       tokens,
@@ -96,8 +84,6 @@ exports.getDashboardData = async (userId) => {
       apps,
       tasks: taches || [],
     };
-
-    
 
     return response;
   } catch (error) {

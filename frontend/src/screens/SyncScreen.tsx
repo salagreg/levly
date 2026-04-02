@@ -15,30 +15,18 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import {
-  connectStrava,
-  connectSpotify,
-  getConnectionStatus,
-} from "../services/syncService";
+import { connectStrava, getConnectionStatus } from "../services/syncService";
 
 const BLUE = "#5B7EBD";
 const BG = "#E8EDF6";
 
-const APP_LOGOS: Record<string, any> = {
-  spotify: require("../../assets/images/logo_spotify.png"),
-  strava: require("../../assets/images/logo_strava.png"),
-};
-
 const APP_BG: Record<string, string> = {
-  spotify: "#191414",
   strava: "#FC4C02",
 };
 
 export default function SyncScreen() {
   const [stravaConnected, setStravaConnected] = useState(false);
-  const [spotifyConnected, setSpotifyConnected] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [expandedCulture, setExpandedCulture] = useState(true);
   const [expandedSport, setExpandedSport] = useState(true);
 
   useEffect(() => {
@@ -50,7 +38,6 @@ export default function SyncScreen() {
       setLoading(true);
       const status = await getConnectionStatus();
       setStravaConnected(status.strava);
-      setSpotifyConnected(status.spotify);
     } catch {
       console.error("Erreur chargement statut");
     } finally {
@@ -67,28 +54,15 @@ export default function SyncScreen() {
     }
   };
 
-  const handleConnectSpotify = async () => {
-    try {
-      await connectSpotify();
-      await loadConnectionStatus();
-    } catch {
-      Alert.alert("Erreur", "Impossible de connecter Spotify");
-    }
-  };
-
   const handleContinue = () => {
-    if (!stravaConnected && !spotifyConnected) {
-      Alert.alert(
-        "Attention",
-        "Connectez au moins une application pour profiter de Levly.",
-        [
-          {
-            text: "Continuer quand même",
-            onPress: () => router.replace("/duration"),
-          },
-          { text: "Annuler", style: "cancel" },
-        ]
-      );
+    if (!stravaConnected) {
+      Alert.alert("Attention", "Connectez Strava pour profiter de Levly.", [
+        {
+          text: "Continuer quand même",
+          onPress: () => router.replace("/duration"),
+        },
+        { text: "Annuler", style: "cancel" },
+      ]);
     } else {
       router.replace("/duration");
     }
@@ -99,14 +73,10 @@ export default function SyncScreen() {
       {/* Header */}
       <SafeAreaView style={styles.headerWrapper} edges={["top"]}>
         <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.headerTitle}>
-              Synchroniser vos applications
-            </Text>
-            <Text style={styles.headerSubtitle}>
-              Connectez vos apps pour suivre vos routines automatiquement
-            </Text>
-          </View>
+          <Text style={styles.headerTitle}>Synchroniser vos applications</Text>
+          <Text style={styles.headerSubtitle}>
+            Connectez vos apps pour suivre vos routines automatiquement
+          </Text>
         </View>
       </SafeAreaView>
 
@@ -114,36 +84,6 @@ export default function SyncScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Culture & Développement */}
-        <View style={styles.card}>
-          {/* Header accordéon */}
-          <TouchableOpacity
-            style={styles.accordionHeader}
-            onPress={() => setExpandedCulture(!expandedCulture)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.accordionEmoji}>📚</Text>
-            <Text style={styles.accordionTitle}>Culture & Développement</Text>
-            <Ionicons
-              name={expandedCulture ? "chevron-up" : "chevron-down"}
-              size={18}
-              color="#B0C4DE"
-            />
-          </TouchableOpacity>
-
-          {/* Contenu */}
-          {expandedCulture && (
-            <View style={styles.accordionContent}>
-              <AppRow
-                appKey="spotify"
-                name="Spotify"
-                connected={spotifyConnected}
-                onPress={handleConnectSpotify}
-              />
-            </View>
-          )}
-        </View>
-
         {/* Sport */}
         <View style={styles.card}>
           <TouchableOpacity
@@ -196,7 +136,7 @@ const AppRow = ({ appKey, name, connected, onPress }) => (
   <View style={styles.appRow}>
     <View style={[styles.appIconBox, { backgroundColor: APP_BG[appKey] }]}>
       <Image
-        source={APP_LOGOS[appKey]}
+        source={require("../../assets/images/logo_strava.png")}
         style={styles.appIconImg}
         resizeMode="contain"
       />
@@ -217,7 +157,6 @@ const AppRow = ({ appKey, name, connected, onPress }) => (
 );
 
 const styles = StyleSheet.create({
-  // ── Header ──────────────────────────────────────────────
   headerWrapper: {
     backgroundColor: BLUE,
     borderBottomLeftRadius: 32,
@@ -244,15 +183,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255,255,255,0.75)",
   },
-
-  // ── Scroll ──────────────────────────────────────────────
   scrollContent: {
     padding: 16,
     paddingBottom: 32,
     gap: 14,
   },
-
-  // ── Cards accordéon ──────────────────────────────────────
   card: {
     backgroundColor: "#fff",
     borderRadius: 24,
@@ -282,8 +217,6 @@ const styles = StyleSheet.create({
     borderTopColor: "#E8EDF6",
     paddingHorizontal: 18,
   },
-
-  // ── App row ──────────────────────────────────────────────
   appRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -308,7 +241,7 @@ const styles = StyleSheet.create({
   connectedPill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1DB954",
+    backgroundColor: "#FC4C02",
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 12,
@@ -330,15 +263,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
   },
-
-  // ── Note ────────────────────────────────────────────────
   note: {
     textAlign: "center",
     fontSize: 13,
     color: "#9AAED4",
   },
-
-  // ── Footer ──────────────────────────────────────────────
   footer: {
     padding: 16,
     paddingBottom: 32,

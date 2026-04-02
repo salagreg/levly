@@ -7,7 +7,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import API_BASE_URL from "../config/api";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
-import Constants from "expo-constants";
 
 // ================================================================
 // Connecter Strava
@@ -16,7 +15,6 @@ export const connectStrava = async () => {
   try {
     const token = await AsyncStorage.getItem("token");
 
-    // Générer un token OAuth temporaire
     const response = await axios.post(
       `${API_BASE_URL}/auth/generate-oauth-token`,
       {},
@@ -28,19 +26,13 @@ export const connectStrava = async () => {
     );
 
     const oauthToken = response.data.oauthToken;
-
-    const fullUrl = `${API_BASE_URL}/strava/connect?token=${oauthToken}`;
-
     const redirectUrl = Linking.createURL("strava-callback");
-
-    // Ouvrir le navigateur avec le token OAuth temporaire
 
     const result = await WebBrowser.openAuthSessionAsync(
       `${API_BASE_URL}/strava/connect?token=${oauthToken}`,
       redirectUrl
     );
 
-    // Accepter "dismiss" comme succès (l'utilisateur a fermé après connexion)
     if (result.type === "success" || result.type === "dismiss") {
       return { success: true };
     } else if (result.type === "cancel") {
@@ -55,48 +47,13 @@ export const connectStrava = async () => {
 };
 
 // ================================================================
-// Connecter Spotify
-// ================================================================
-export const connectSpotify = async () => {
-  try {
-    const token = await AsyncStorage.getItem("token");
-
-    const response = await axios.post(
-      `${API_BASE_URL}/auth/generate-oauth-token`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    const oauthToken = response.data.oauthToken;
-    const redirectUri = Linking.createURL("spotify-callback");
-
-    // Ouvrir la WebView OAuth
-    await WebBrowser.openAuthSessionAsync(
-      `${API_BASE_URL}/spotify/connect?token=${oauthToken}`,
-      redirectUri
-    );
-
-    // Peu importe le result.type, on vérifie le vrai statut en BDD
-    const status = await getConnectionStatus();
-    
-    if (status.spotify) {
-      return { success: true };
-    } else {
-      throw new Error("Connexion Spotify échouée");
-    }
-  } catch (error) {
-    console.error("Erreur connectSpotify:", error);
-    throw error;
-  }
-};
-// ================================================================
-// Vérifier le statut de connexion des apps
+// Vérifier le statut de connexion Strava
 // ================================================================
 export const getConnectionStatus = async () => {
   try {
     const token = await AsyncStorage.getItem("token");
 
-    const response = await axios.get(`${API_BASE_URL}/sync/status`, {
+    const response = await axios.get(`${API_BASE_URL}/strava/status`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

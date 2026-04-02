@@ -14,18 +14,6 @@ const PILIERS = {
       },
     },
   },
-  CULTURE: {
-    nom: "Culture & Développement",
-    icone: "📚",
-    applications: {
-      SPOTIFY: {
-        id: "spotify",
-        nom: "Spotify",
-        logo_url: "/assets/logos/spotify_logo.png",
-        api_endpoint: "",
-      },
-    },
-  },
 };
 
 // ===============================================================

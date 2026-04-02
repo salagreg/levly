@@ -10,15 +10,10 @@ const path = require("path");
 const authRoutes = require("./src/routes/authRoutes");
 const pilierRoutes = require("./src/routes/pilierRoutes");
 const stravaRoutes = require("./src/routes/stravaRoutes");
-const spotifyRoutes = require("./src/routes/spotifyRoutes");
-const validationRoutes = require("./src/routes/validationRoutes");
 const dashboardRoutes = require("./src/routes/dashboardRoutes");
 const rewardsRoutes = require("./src/routes/rewardsRoutes");
 const statsRoutes = require("./src/routes/statsRoutes");
 const settingsRoutes = require("./src/routes/settingsRoutes");
-const syncRoutes = require("./src/routes/syncRoutes");
-const tacheRoutes = require("./src/routes/tacheRoutes");
-const resetTachesCron = require("./src/jobs/resetTachesCron");
 
 const app = express();
 
@@ -31,7 +26,7 @@ app.use(express.json());
 
 // ===============================================================
 // Servir les fichiers statiques (images, logos)
-// ==============================================================
+// ===============================================================
 
 app.use("/assets", express.static(path.join(__dirname, "src/public/assets")));
 
@@ -42,20 +37,16 @@ app.use("/assets", express.static(path.join(__dirname, "src/public/assets")));
 app.use("/api/auth", authRoutes);
 app.use("/api/piliers", pilierRoutes);
 app.use("/api/strava", stravaRoutes);
-app.use("/api/spotify", spotifyRoutes);
-app.use("/api/validation", validationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/rewards", rewardsRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/settings", settingsRoutes);
-app.use("/api/sync", syncRoutes);
-app.use("/api/taches", tacheRoutes);
 
 const port = process.env.PORT || 3000;
 
 // ===============================================================
 // Route de base pour vérifier que le serveur fonctionne
-// ==============================================================
+// ===============================================================
 
 app.get("/", (req, res) => {
   res.json({
@@ -76,7 +67,6 @@ const pool = require("./src/config/database");
 app.get("/health", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");
-
     res.status(200).json({
       status: "OK",
       message: "L'API Levly est en cours d'exécution.",
@@ -93,5 +83,3 @@ app.get("/health", async (req, res) => {
 });
 
 app.listen(port, () => {});
-
-resetTachesCron();

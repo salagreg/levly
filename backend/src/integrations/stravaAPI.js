@@ -34,6 +34,7 @@ class StravaAPI {
         access_token: response.data.access_token,
         refresh_token: response.data.refresh_token,
         expires_at: response.data.expires_at,
+        athlete_id: response.data.athlete.id,
       };
     } catch (error) {
       console.error(

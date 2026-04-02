@@ -19,6 +19,7 @@ CREATE TABLE utilisateur (
 
 -- ================================================================
 -- Table : pilier
+-- Les tokens OAuth sont déplacés dans oauth_connection
 -- ================================================================
 CREATE TABLE pilier (
   id_pilier         SERIAL PRIMARY KEY NOT NULL,
@@ -28,14 +29,34 @@ CREATE TABLE pilier (
   type_validation   VARCHAR(20) DEFAULT 'duree',
   objectif_config   JSONB NOT NULL,
   pilier_actif      BOOLEAN NOT NULL DEFAULT true,
+  date_creation     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  date_maj          TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id)
+);
+
+-- ================================================================
+-- Table : oauth_connection
+-- Centralise toutes les connexions OAuth externes (Strava, Garmin...)
+-- Une ligne par utilisateur par service
+-- ================================================================
+CREATE TABLE oauth_connection (
+  id                SERIAL PRIMARY KEY,
+  id_utilisateur    INT NOT NULL,
+  source_externe    VARCHAR(50) NOT NULL,
+  external_user_id  VARCHAR(100) NOT NULL,
   access_token      VARCHAR(255),
   refresh_token     VARCHAR(255),
   token_expires_at  BIGINT,
   date_creation     TIMESTAMPTZ NOT NULL DEFAULT now(),
   date_maj          TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id)
+  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE,
+  UNIQUE (source_externe, external_user_id)
 );
+
+CREATE INDEX idx_oauth_user ON oauth_connection(id_utilisateur);
+CREATE INDEX idx_oauth_source ON oauth_connection(source_externe, external_user_id);
 
 -- ================================================================
 -- Table : activite
@@ -52,7 +73,7 @@ CREATE TABLE activite (
   FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id),
   FOREIGN KEY (id_pilier) REFERENCES pilier(id_pilier),
 
-  CONSTRAINT unique_activite_jour 
+  CONSTRAINT unique_activite_jour
     UNIQUE (id_utilisateur, id_pilier, date_activite)
 );
 
@@ -83,22 +104,6 @@ CREATE TABLE jeton (
 );
 
 CREATE INDEX idx_jeton_user ON jeton(id_utilisateur);
-
--- ================================================================
--- Table : tache
--- ================================================================
-CREATE TABLE tache (
-  id_tache        SERIAL PRIMARY KEY NOT NULL,
-  id_utilisateur  INT NOT NULL,
-  titre           VARCHAR(255) NOT NULL,
-  completee       BOOLEAN DEFAULT false,
-  date_creation   TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-  date_maj        TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-
-  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_tache_utilisateur ON tache(id_utilisateur);
 
 -- ================================================================
 -- Table : administrateur

@@ -6,48 +6,53 @@ const pool = require("../config/database");
 
 class OAuthConnection {
   // Créer ou mettre à jour une connexion OAuth
-  // ON CONFLICT permet de faire un "upsert" :
-  // si la connexion existe déjà → on met à jour, sinon → on crée
   static async upsert(data) {
-    const {
-      id_utilisateur,
-      source_externe,
-      external_user_id,
-      access_token,
-      refresh_token,
-      token_expires_at,
-    } = data;
-
-    const query = `
-      INSERT INTO oauth_connection (
+    try {
+      const {
         id_utilisateur,
         source_externe,
         external_user_id,
         access_token,
         refresh_token,
         token_expires_at,
-        date_maj
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, now())
-      ON CONFLICT (source_externe, external_user_id)
-      DO UPDATE SET
-        access_token     = EXCLUDED.access_token,
-        refresh_token    = EXCLUDED.refresh_token,
-        token_expires_at = EXCLUDED.token_expires_at,
-        date_maj         = now()
-      RETURNING *
-    `;
+      } = data;
 
-    const result = await pool.query(query, [
-      id_utilisateur,
-      source_externe,
-      external_user_id,
-      access_token,
-      refresh_token,
-      token_expires_at,
-    ]);
+      const query = `
+        INSERT INTO oauth_connection (
+          id_utilisateur,
+          source_externe,
+          external_user_id,
+          access_token,
+          refresh_token,
+          token_expires_at,
+          date_maj
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, now())
+        ON CONFLICT (id_utilisateur, source_externe)
+        DO UPDATE SET
+          access_token     = EXCLUDED.access_token,
+          refresh_token    = EXCLUDED.refresh_token,
+          token_expires_at = EXCLUDED.token_expires_at,
+          external_user_id = EXCLUDED.external_user_id,
+          date_maj         = now()
+        RETURNING *
+      `;
 
-    return result.rows[0];
+      const result = await pool.query(query, [
+        id_utilisateur,
+        source_externe,
+        external_user_id,
+        access_token,
+        refresh_token,
+        token_expires_at,
+      ]);
+
+      console.log("✅ oauth_connection upsert result:", result.rows[0]);
+      return result.rows[0];
+    } catch (error) {
+      console.error("❌ oauth_connection upsert ERROR:", error.message);
+      throw error;
+    }
   }
 
   // Récupérer une connexion par utilisateur et source
@@ -62,7 +67,6 @@ class OAuthConnection {
   }
 
   // Récupérer une connexion par l'ID externe (pour le webhook)
-  // C'est la requête clé : "owner_id Strava 789 → quel utilisateur Levly ?"
   static async findByExternalUserId(sourceExterne, externalUserId) {
     const query = `
       SELECT * FROM oauth_connection

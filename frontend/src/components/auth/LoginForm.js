@@ -1,14 +1,12 @@
-// ===============================================================
-// Formulaire de connexion pour les utilisateurs existants
-// ===============================================================
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Alert } from "react-native";
+import { View, Text, StyleSheet, Alert, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import { login } from "../../services/authService";
 import CustomInput from "../common/CustomInput";
 import CustomButton from "../common/CustomButton";
 import validation from "../../utils/validation";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { FONTS, COLORS } from "../../config/theme";
 
 const LoginForm = () => {
   const [formData, setFormData] = useState({
@@ -19,36 +17,22 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors((prev) => ({
-        ...prev,
-        [field]: "",
-      }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
   const handleLogin = async () => {
     const validationResult = validation.validateLoginForm(formData);
-
     if (!validationResult.isValid) {
       setErrors(validationResult.errors);
       return;
     }
-
     try {
       setLoading(true);
-
       const response = await login(formData.email, formData.mot_de_passe);
-
-      // Stocker le prénom pour le dashboard
       await AsyncStorage.setItem("prenom", response.user.prenom);
-
-      // Naviguer une seule fois
       router.replace("/(tabs)");
     } catch (error) {
       Alert.alert(
@@ -68,6 +52,7 @@ const LoginForm = () => {
         onChangeText={(value) => handleInputChange("email", value)}
         placeholder="votre@email.com"
         keyboardType="email-address"
+        autoCapitalize="none"
       />
       {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
@@ -82,40 +67,41 @@ const LoginForm = () => {
         <Text style={styles.errorText}>{errors.mot_de_passe}</Text>
       )}
 
-      <Text style={styles.forgotPassword}>Mot de passe oublié ?</Text>
+      <TouchableOpacity style={styles.forgotWrapper}>
+        <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+      </TouchableOpacity>
 
       <CustomButton
         title="Se connecter"
         onPress={handleLogin}
         loading={loading}
       />
-
-      <Text style={styles.linkText}>Continuer sans inscription</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 20,
   },
   errorText: {
-    color: "red",
+    color: COLORS.error,
     fontSize: 12,
+    fontFamily: FONTS.regular,
     marginTop: -10,
     marginBottom: 10,
   },
-  forgotPassword: {
-    color: "#5B7EBD",
-    textAlign: "right",
-    marginBottom: 20,
-    fontSize: 14,
+  forgotWrapper: {
+    alignItems: "flex-end",
+    marginBottom: 8,
+    marginTop: -4,
   },
-  linkText: {
-    color: "#999",
-    textAlign: "center",
-    marginTop: 20,
-    fontSize: 16,
+  forgotText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontFamily: FONTS.semibold,
   },
 });
 

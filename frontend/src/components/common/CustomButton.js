@@ -1,6 +1,3 @@
-// ===============================================================
-// Composant bouton personnalisable avec différents styles et états
-// ===============================================================
 import React from "react";
 import {
   TouchableOpacity,
@@ -8,6 +5,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
+import { FONTS, COLORS } from "../../config/theme";
 
 const CustomButton = ({
   title,
@@ -25,7 +23,7 @@ const CustomButton = ({
       ]}
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.7}
+      activeOpacity={0.85}
     >
       {loading ? (
         <ActivityIndicator color="#fff" />
@@ -45,29 +43,38 @@ const CustomButton = ({
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: "#5B7EBD",
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 15,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 10,
+    marginTop: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
   },
   buttonSecondary: {
     backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "#5B7EBD",
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   buttonDisabled: {
-    backgroundColor: "#ccc",
-    opacity: 0.6,
+    backgroundColor: COLORS.lighter,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
+    color: COLORS.white,
+    fontSize: 15,
+    fontFamily: FONTS.bold,
+    letterSpacing: 0.3,
   },
   buttonTextSecondary: {
-    color: "#5B7EBD",
+    color: COLORS.primary,
   },
 });
 

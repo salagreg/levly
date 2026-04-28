@@ -12,22 +12,16 @@ import {
   Image,
   ScrollView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { connectStrava, getConnectionStatus } from "../services/syncService";
-
-const BLUE = "#5B7EBD";
-const BG = "#E8EDF6";
-
-const APP_BG: Record<string, string> = {
-  strava: "#FC4C02",
-};
+import { FONTS, COLORS } from "../config/theme";
 
 export default function SyncScreen() {
   const [stravaConnected, setStravaConnected] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [expandedSport, setExpandedSport] = useState(true);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     loadConnectionStatus();
@@ -69,223 +63,334 @@ export default function SyncScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
-      {/* Header */}
-      <SafeAreaView style={styles.headerWrapper} edges={["top"]}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Synchroniser vos applications</Text>
-          <Text style={styles.headerSubtitle}>
-            Connectez vos apps pour suivre vos routines automatiquement
-          </Text>
-        </View>
-      </SafeAreaView>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Sport */}
-        <View style={styles.card}>
-          <TouchableOpacity
-            style={styles.accordionHeader}
-            onPress={() => setExpandedSport(!expandedSport)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.accordionEmoji}>💪</Text>
-            <Text style={styles.accordionTitle}>Sport</Text>
-            <Ionicons
-              name={expandedSport ? "chevron-up" : "chevron-down"}
-              size={18}
-              color="#B0C4DE"
-            />
-          </TouchableOpacity>
-
-          {expandedSport && (
-            <View style={styles.accordionContent}>
-              <AppRow
-                appKey="strava"
-                name="Strava"
-                connected={stravaConnected}
-                onPress={handleConnectStrava}
-              />
-            </View>
-          )}
-        </View>
-
-        <Text style={styles.note}>
-          Vous pourrez modifier ces paramètres plus tard
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* ── Header ── */}
+      <View style={styles.topSection}>
+        <View style={styles.circle1} />
+        <View style={styles.circle2} />
+        <Text style={styles.headerTitle}>Connecte tes apps</Text>
+        <Text style={styles.headerSubtitle}>
+          Tes activités seront détectées automatiquement{"\n"}Zéro friction
         </Text>
-      </ScrollView>
+      </View>
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.continueButton}
-          onPress={handleContinue}
-          activeOpacity={0.85}
+      {/* ── Contenu ── */}
+      <View style={styles.bottomSheet}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + 100 },
+          ]}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.continueText}>Continuer</Text>
-        </TouchableOpacity>
+          {/* ── SPORT ── */}
+          <Text style={styles.sectionLabel}>Sport</Text>
+
+          <View style={styles.appCard}>
+            <View style={styles.appLeft}>
+              <View style={[styles.appIconBox, { backgroundColor: "#FC4C02" }]}>
+                <Image
+                  source={require("../../assets/images/logo_strava.png")}
+                  style={styles.appIconImg}
+                  resizeMode="contain"
+                />
+              </View>
+              <View>
+                <Text style={styles.appName}>Strava</Text>
+                <Text
+                  style={[
+                    styles.appStatus,
+                    stravaConnected && styles.appStatusConnected,
+                  ]}
+                >
+                  {stravaConnected ? "Connecté" : "Non connecté"}
+                </Text>
+              </View>
+            </View>
+            {stravaConnected ? (
+              <View style={styles.connectedBadge}>
+                <Ionicons name="checkmark" size={16} color="#fff" />
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.connectBtn}
+                onPress={handleConnectStrava}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.connectBtnText}>Connecter</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <ComingSoonCard
+            icon="watch-outline"
+            iconBg="#1C1C1E"
+            name="Garmin"
+            category="Sport"
+          />
+
+          {/* ── BIEN-ÊTRE ── */}
+          <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Bien-être</Text>
+
+          <ComingSoonCard
+            icon="moon-outline"
+            iconBg="#6C63FF"
+            name="Headspace"
+            category="Méditation"
+          />
+          <ComingSoonCard
+            icon="leaf-outline"
+            iconBg="#2ECC71"
+            name="Calm"
+            category="Méditation"
+          />
+
+          {/* ── CULTURE ── */}
+          <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Culture</Text>
+
+          <ComingSoonCard
+            icon="book-outline"
+            iconBg="#E67E22"
+            name="Kindle"
+            category="Lecture"
+          />
+          <ComingSoonCard
+            icon="school-outline"
+            iconBg="#3498DB"
+            name="Duolingo"
+            category="Apprentissage"
+          />
+
+          <Text style={styles.note}>
+            Tu pourras modifier ça dans les paramètres
+          </Text>
+        </ScrollView>
+
+        {/* ── Bouton Continuer ── */}
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+          <TouchableOpacity
+            style={styles.continueButton}
+            onPress={handleContinue}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.continueText}>Continuer</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 }
 
-// ── AppRow ────────────────────────────────────────────────────────
-const AppRow = ({ appKey, name, connected, onPress }) => (
-  <View style={styles.appRow}>
-    <View style={[styles.appIconBox, { backgroundColor: APP_BG[appKey] }]}>
-      <Image
-        source={require("../../assets/images/logo_strava.png")}
-        style={styles.appIconImg}
-        resizeMode="contain"
-      />
-    </View>
-    <Text style={styles.appName}>{name}</Text>
-
-    {connected ? (
-      <View style={styles.connectedPill}>
-        <Ionicons name="checkmark" size={14} color="#fff" />
-        <Text style={styles.connectedText}>Connecté</Text>
+// ── Composant app "bientôt disponible" ──
+const ComingSoonCard = ({ icon, iconBg, name, category }) => (
+  <View style={[styles.appCard, styles.appCardDisabled]}>
+    <View style={styles.appLeft}>
+      <View style={[styles.appIconBox, { backgroundColor: iconBg }]}>
+        <Ionicons name={icon} size={20} color="#fff" />
       </View>
-    ) : (
-      <TouchableOpacity style={styles.connectBtn} onPress={onPress}>
-        <Text style={styles.connectBtnText}>Se connecter</Text>
-      </TouchableOpacity>
-    )}
+      <View>
+        <Text style={[styles.appName, { color: COLORS.light }]}>{name}</Text>
+        <Text style={styles.comingSoonText}>Partenariat à venir</Text>
+      </View>
+    </View>
+    <View style={styles.comingSoonBadge}>
+      <Text style={styles.comingSoonText}>Bientôt</Text>
+    </View>
   </View>
 );
 
 const styles = StyleSheet.create({
-  headerWrapper: {
-    backgroundColor: BLUE,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    shadowColor: "#1A3A6B",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 12,
-    zIndex: 10,
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
-  headerContent: {
+
+  // ── Top section ──
+  topSection: {
     paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 32,
+    paddingVertical: 28,
+    position: "relative",
+  },
+  circle1: {
+    position: "absolute",
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "rgba(91,126,189,0.08)",
+    top: -40,
+    right: -40,
+  },
+  circle2: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(91,126,189,0.06)",
+    bottom: -20,
+    left: -20,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#fff",
-    marginBottom: 4,
+    fontSize: 26,
+    fontFamily: FONTS.extrabold,
+    color: COLORS.dark,
+    marginBottom: 8,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.75)",
+    fontFamily: FONTS.regular,
+    color: COLORS.medium,
+    lineHeight: 22,
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
-    gap: 14,
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 24,
-    overflow: "hidden",
-    shadowColor: BLUE,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
+
+  // ── Bottom sheet ──
+  bottomSheet: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.08,
     shadowRadius: 20,
-    elevation: 5,
+    elevation: 16,
   },
-  accordionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+
+  scrollContent: {
+    padding: 24,
     gap: 10,
   },
-  accordionEmoji: { fontSize: 18 },
-  accordionTitle: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#1A2B4A",
+
+  // ── Section label ──
+  sectionLabel: {
+    fontSize: 11,
+    fontFamily: FONTS.bold,
+    color: COLORS.medium,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    marginBottom: 2,
   },
-  accordionContent: {
-    borderTopWidth: 0.5,
-    borderTopColor: "#E8EDF6",
-    paddingHorizontal: 18,
-  },
-  appRow: {
+
+  // ── App card ──
+  appCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 14,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    gap: 14,
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: COLORS.lighter,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  appCardDisabled: {
+    opacity: 0.45,
+    borderStyle: "dashed",
+  },
+  appLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   appIconBox: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    flexShrink: 0,
   },
   appIconImg: { width: 26, height: 26 },
   appName: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#1A2B4A",
+    fontSize: 14,
+    fontFamily: FONTS.bold,
+    color: COLORS.dark,
+    marginBottom: 2,
   },
-  connectedPill: {
-    flexDirection: "row",
+  appStatus: {
+    fontSize: 11,
+    fontFamily: FONTS.regular,
+    color: COLORS.light,
+  },
+  appStatusConnected: {
+    color: "#4CD97B",
+    fontFamily: FONTS.semibold,
+  },
+
+  // ── Connected badge ──
+  connectedBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.primary,
     alignItems: "center",
-    backgroundColor: "#FC4C02",
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 12,
-    gap: 5,
+    justifyContent: "center",
   },
-  connectedText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "600",
-  },
+
+  // ── Connect button ──
   connectBtn: {
-    backgroundColor: BLUE,
+    backgroundColor: COLORS.primary,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   connectBtnText: {
-    color: "#fff",
+    color: COLORS.white,
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: FONTS.bold,
   },
+
+  // ── Coming soon badge ──
+  comingSoonBadge: {
+    backgroundColor: COLORS.background,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.lighter,
+  },
+  comingSoonText: {
+    fontSize: 11,
+    fontFamily: FONTS.semibold,
+    color: COLORS.medium,
+  },
+
+  // ── Note ──
   note: {
     textAlign: "center",
-    fontSize: 13,
-    color: "#9AAED4",
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    color: COLORS.light,
+    marginTop: 8,
   },
+
+  // ── Footer ──
   footer: {
-    padding: 16,
-    paddingBottom: 32,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    backgroundColor: COLORS.white,
   },
   continueButton: {
-    backgroundColor: BLUE,
-    paddingVertical: 17,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 16,
     borderRadius: 16,
     alignItems: "center",
-    shadowColor: BLUE,
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 6,
   },
   continueText: {
-    color: "#fff",
+    color: COLORS.white,
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: FONTS.bold,
   },
 });

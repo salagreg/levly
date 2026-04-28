@@ -137,7 +137,7 @@ class StravaController {
       }
 
       console.log("✅ [Strava] Callback terminé, redirect vers l'app");
-      res.redirect("levly://strava-callback?success=true");
+      res.redirect("https://levly-backend-dev.onrender.com/api/strava/callback?success=true");
     } catch (error) {
       console.log("❌ [Strava] Erreur callback:", error.message);
       console.log("❌ [Strava] Stack:", error.stack);

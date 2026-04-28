@@ -14,9 +14,8 @@ exports.processRewards = async (
   targetMinutes
 ) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toLocaleDateString("fr-CA");
 
-    // Vérifier qu'on n'a pas déjà récompensé aujourd'hui pour ce pilier
     const alreadyRewarded = await db.query(
       `SELECT id_activite FROM activite
        WHERE id_utilisateur = $1
@@ -30,7 +29,6 @@ exports.processRewards = async (
       return { success: false, reason: "already_rewarded" };
     }
 
-    // Enregistrer l'activité comme validée
     await db.query(
       `INSERT INTO activite 
         (id_utilisateur, id_pilier, date_activite, duree_minutes, activite_validee, source_externe)
@@ -40,11 +38,6 @@ exports.processRewards = async (
       [userId, pilierId, today, durationMinutes]
     );
 
-    // ================================================================
-    // Calcul des tokens — système méritocratique
-    // Objectif non atteint → 0 token
-    // Objectif atteint → tokens = objectif + bonus dépassement
-    // ================================================================
     if (durationMinutes < targetMinutes) {
       return {
         success: true,
@@ -64,7 +57,6 @@ exports.processRewards = async (
       [userId, tokensGagnes]
     );
 
-    // Mettre à jour la série
     const serieResult = await db.query(
       `SELECT serie_actuelle, derniere_validation FROM serie
        WHERE id_utilisateur = $1`,
@@ -124,69 +116,41 @@ exports.processRewards = async (
 };
 
 // ================================================================
-// Récupérer les badges de l'utilisateur
+// Récupérer les stats pour les badges
+// Les badges sont définis côté frontend — ici on retourne juste les stats
 // ================================================================
 exports.getBadges = async (userId) => {
   try {
-    const serieQuery = `
-      SELECT COALESCE(serie_actuelle, 0) as serie
-      FROM serie
-      WHERE id_utilisateur = $1
-    `;
-    const serieResult = await db.query(serieQuery, [userId]);
+    // Série actuelle
+    const serieResult = await db.query(
+      `SELECT COALESCE(serie_actuelle, 0) as serie
+       FROM serie WHERE id_utilisateur = $1`,
+      [userId]
+    );
     const serie = serieResult.rows[0]?.serie || 0;
 
-    const tokensQuery = `
-      SELECT COALESCE(SUM(montant_jeton), 0) as total_tokens
-      FROM jeton
-      WHERE id_utilisateur = $1
-    `;
-    const tokensResult = await db.query(tokensQuery, [userId]);
+    // Total tokens
+    const tokensResult = await db.query(
+      `SELECT COALESCE(SUM(montant_jeton), 0) as total_tokens
+       FROM jeton WHERE id_utilisateur = $1`,
+      [userId]
+    );
     const totalTokens = parseInt(tokensResult.rows[0]?.total_tokens || 0);
 
-    const badges = [
-      {
-        id: 1,
-        name: "Première victoire",
-        description: "Complétez votre première journée",
-        icon: "🏆",
-        unlocked: serie >= 1,
-      },
-      {
-        id: 2,
-        name: "Série de 7 jours",
-        description: "Maintenez une série de 7 jours consécutifs",
-        icon: "🔥",
-        unlocked: serie >= 7,
-      },
-      {
-        id: 3,
-        name: "Série de 30 jours",
-        description: "Maintenez une série de 30 jours consécutifs",
-        icon: "💎",
-        unlocked: serie >= 30,
-      },
-      {
-        id: 4,
-        name: "Expert du temps",
-        description: "Accumulez 1000 tokens",
-        icon: "⏰",
-        unlocked: totalTokens >= 1000,
-      },
-      {
-        id: 5,
-        name: "Millionnaire",
-        description: "Accumulez 10 000 tokens",
-        icon: "💰",
-        unlocked: totalTokens >= 10000,
-      },
-    ];
+    // Total activités validées
+    const activitesResult = await db.query(
+      `SELECT COUNT(*) as total
+       FROM activite
+       WHERE id_utilisateur = $1 AND activite_validee = true`,
+      [userId]
+    );
+    const totalActivites = parseInt(activitesResult.rows[0]?.total || 0);
 
     return {
-      badges,
       stats: {
         serie_actuelle: serie,
         total_tokens: totalTokens,
+        total_activites: totalActivites,
       },
     };
   } catch (error) {

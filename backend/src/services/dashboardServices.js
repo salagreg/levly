@@ -91,7 +91,7 @@ const getWeekData = async (userId) => {
   for (let i = 6; i >= 0; i--) {
     const date = new Date();
     date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split("T")[0];
+    const dateStr = date.toLocaleDateString("fr-CA");
     const dayLabel = dayLabels[date.getDay()];
     const isToday = i === 0;
 
@@ -106,6 +106,8 @@ const getWeekData = async (userId) => {
 
     const validated = parseInt(result.rows[0].count, 10) > 0;
 
+    console.log(`📅 ${dateStr} → validated: ${validated}`);
+    
     days.push({
       date: dateStr,
       label: dayLabel,

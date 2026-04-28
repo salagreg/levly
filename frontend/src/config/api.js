@@ -2,15 +2,13 @@
 // Configuration de l'API
 // ================================================================
 
-// URL locale (pour développement sur Mac)
-// const API_BASE_URL = "http://10.5.1.92:3000/api";
+// URL locale (iPhone sur même réseau WiFi)
+// const API_BASE_URL = "http://172.20.10.7:3000/api";
 
-// URL 
-const API_BASE_URL = "http://172.20.10.7:3000/api";
-// URL locale (pour tester sur iPhone via même WiFi)
-// const API_BASE_URL = "http://192.168.1.X:3000/api";  // Remplace X par ton IP
+// URL production dev (Render)
+const API_BASE_URL = "https://levly-backend-dev.onrender.com/api";
 
-// URL production (après déploiement)
+// URL production stable
 // const API_BASE_URL = "https://levly-backend.onrender.com/api";
 
 export default API_BASE_URL;

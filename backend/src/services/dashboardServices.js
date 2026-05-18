@@ -107,7 +107,7 @@ const getWeekData = async (userId) => {
     const validated = parseInt(result.rows[0].count, 10) > 0;
 
     console.log(`📅 ${dateStr} → validated: ${validated}`);
-    
+
     days.push({
       date: dateStr,
       label: dayLabel,

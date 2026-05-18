@@ -62,28 +62,27 @@ export default function DurationScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-
       {/* ── Header ── */}
       <View style={styles.topSection}>
-  <View style={styles.circle1} />
-  <View style={styles.circle2} />
+        <View style={styles.circle1} />
+        <View style={styles.circle2} />
 
-  {/* Bouton retour + titre sur la même ligne */}
-  <View style={styles.headerRow}>
-    <TouchableOpacity
-      onPress={() => router.push("/sync")}
-      style={styles.backBtn}
-      activeOpacity={0.7}
-    >
-      <Ionicons name="chevron-back" size={20} color={COLORS.primary} />
-    </TouchableOpacity>
-    <Text style={styles.headerTitle}>Ton objectif</Text>
-  </View>
+        {/* Bouton retour + titre sur la même ligne */}
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={() => router.push("/sync")}
+            style={styles.backBtn}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Ton objectif</Text>
+        </View>
 
-  <Text style={styles.headerSubtitle}>
-  Définis la durée quotidienne que tu veux consacrer à chaque activité
-  </Text>
-</View>
+        <Text style={styles.headerSubtitle}>
+          Définis la durée quotidienne que tu veux consacrer à chaque activité
+        </Text>
+      </View>
 
       {/* ── Contenu ── */}
       <View style={styles.bottomSheet}>
@@ -105,7 +104,12 @@ export default function DurationScreen() {
                   {/* App header */}
                   <View style={styles.cardHeader}>
                     <View style={styles.appLeft}>
-                      <View style={[styles.appIconBox, { backgroundColor: "#FC4C02" }]}>
+                      <View
+                        style={[
+                          styles.appIconBox,
+                          { backgroundColor: "#FC4C02" },
+                        ]}
+                      >
                         <Image
                           source={require("../../assets/images/logo_strava.png")}
                           style={styles.appIconImg}
@@ -114,7 +118,9 @@ export default function DurationScreen() {
                       </View>
                       <Text style={styles.appName}>Strava</Text>
                     </View>
-                    <Text style={styles.durationValue}>{stravaDuration} min</Text>
+                    <Text style={styles.durationValue}>
+                      {stravaDuration} min
+                    </Text>
                   </View>
 
                   {/* Slider */}
@@ -138,19 +144,29 @@ export default function DurationScreen() {
                   <View style={styles.tokenPreview}>
                     <View style={styles.tokenRow}>
                       <Text style={styles.tokenLabel}>🪙 Objectif atteint</Text>
-                      <Text style={styles.tokenValue}>+{tokensBase} tokens</Text>
+                      <Text style={styles.tokenValue}>
+                        +{tokensBase} tokens
+                      </Text>
                     </View>
                     <View style={styles.divider} />
                     <View style={styles.tokenRow}>
-                      <Text style={styles.tokenLabel}>⚡ Bonus dépassement</Text>
+                      <Text style={styles.tokenLabel}>
+                        ⚡ Bonus dépassement
+                      </Text>
                       <Text style={styles.tokenValue}>+0.5 token/min</Text>
                     </View>
                   </View>
                 </View>
               ) : (
                 <View style={styles.emptyState}>
-                  <Ionicons name="alert-circle-outline" size={48} color={COLORS.lighter} />
-                  <Text style={styles.emptyText}>Aucune application connectée</Text>
+                  <Ionicons
+                    name="alert-circle-outline"
+                    size={48}
+                    color={COLORS.lighter}
+                  />
+                  <Text style={styles.emptyText}>
+                    Aucune application connectée
+                  </Text>
                   <Text style={styles.emptySubtext}>
                     Retourne à l'écran précédent pour connecter Strava
                   </Text>
@@ -159,7 +175,9 @@ export default function DurationScreen() {
             </ScrollView>
 
             {/* ── Bouton Terminé ── */}
-            <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+            <View
+              style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}
+            >
               <TouchableOpacity
                 style={styles.finishButton}
                 onPress={handleFinish}

@@ -35,7 +35,7 @@ const getVibeMessage = (pct: number) => {
       msg: `Super rythme ! Encore ${100 - pct}% pour valider ta journée.`,
     };
   return {
-    label: "Objectif atteint 🔥",
+    label: "Objectif atteint",
     msg: "Incroyable, tu as tout validé aujourd'hui !",
   };
 };
@@ -166,15 +166,22 @@ const WeekGauge = ({ weekData }: { weekData: DayData[] }) => {
           let textStyle = styles.dayTextEmpty;
           let label = day.isToday ? "•••" : day.validated ? "✓" : "✗";
 
-          if (day.isToday) {
+          if (day.isToday && day.validated) {
+            circleStyle = styles.daySuccess;
+            textStyle = styles.dayTextSuccess;
+            label = "✓";
+          } else if (day.isToday) {
             circleStyle = styles.dayToday;
             textStyle = styles.dayTextToday;
+            label = "•••";
           } else if (day.validated) {
             circleStyle = styles.daySuccess;
             textStyle = styles.dayTextSuccess;
+            label = "✓";
           } else {
             circleStyle = styles.dayFail;
             textStyle = styles.dayTextFail;
+            label = "✗";
           }
 
           return (

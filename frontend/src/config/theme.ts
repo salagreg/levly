@@ -31,3 +31,7 @@ export const RADIUS = {
   xl: 24,
   xxl: 32,
 };
+
+export const FEATURES = {
+  store: true,
+};

@@ -3,12 +3,21 @@
 // ================================================================
 
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import Svg, { Path } from "react-native-svg";
 import { getDashboard } from "../services/dashboardService";
+import StoreScreen from "./StoreScreen";
+import { FEATURES } from "../config/theme";
 
 const BLUE = "#5B7EBD";
 const GREEN = "#4CD97B";
@@ -150,7 +159,6 @@ const AppCard = ({ app }: { app: App }) => {
 // ================================================================
 const WeekGauge = ({ weekData }: { weekData: DayData[] }) => {
   const validatedCount = weekData.filter((d) => d.validated).length;
-  const totalPast = weekData.filter((d) => !d.isToday).length;
 
   return (
     <View style={styles.weekCard}>
@@ -164,7 +172,7 @@ const WeekGauge = ({ weekData }: { weekData: DayData[] }) => {
         {weekData.map((day, index) => {
           let circleStyle = styles.dayEmpty;
           let textStyle = styles.dayTextEmpty;
-          let label = day.isToday ? "•••" : day.validated ? "✓" : "✗";
+          let label = "•••";
 
           if (day.isToday && day.validated) {
             circleStyle = styles.daySuccess;
@@ -208,6 +216,7 @@ export default function DashboardScreen() {
   const [apps, setApps] = useState<App[]>([]);
   const [weekData, setWeekData] = useState<DayData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [storeVisible, setStoreVisible] = useState(false); // ← feature store
 
   const loadPrenom = async () => {
     const stored = await AsyncStorage.getItem("prenom");
@@ -265,16 +274,32 @@ export default function DashboardScreen() {
               <Text style={styles.userName}>{prenom || "..."} 👋</Text>
             </View>
             <View style={styles.pills}>
+              {/* Pill streak */}
               <View style={styles.pill}>
                 <Text style={styles.pillIcon}>🔥</Text>
                 <Text style={styles.pillValue}>{streak}</Text>
               </View>
-              <View style={styles.pill}>
-                <Text style={styles.pillIcon}>🪙</Text>
-                <Text style={styles.pillValue}>
-                  {tokens.toLocaleString("fr-FR")}
-                </Text>
-              </View>
+
+              {/* Pill tokens — cliquable si FEATURES.store = true */}
+              {FEATURES.store ? (
+                <TouchableOpacity
+                  style={styles.pill}
+                  onPress={() => setStoreVisible(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.pillIcon}>🪙</Text>
+                  <Text style={styles.pillValue}>
+                    {tokens.toLocaleString("fr-FR")}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.pill}>
+                  <Text style={styles.pillIcon}>🪙</Text>
+                  <Text style={styles.pillValue}>
+                    {tokens.toLocaleString("fr-FR")}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -323,6 +348,15 @@ export default function DashboardScreen() {
           )}
         </ScrollView>
       </SafeAreaView>
+
+      {/* ── STORE MODAL ── */}
+      {FEATURES.store && (
+        <StoreScreen
+          visible={storeVisible}
+          onClose={() => setStoreVisible(false)}
+          userTokens={tokens}
+        />
+      )}
     </View>
   );
 }
@@ -333,8 +367,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 120,
   },
-
-  // ── Header ──
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -372,8 +404,6 @@ const styles = StyleSheet.create({
   },
   pillIcon: { fontSize: 15 },
   pillValue: { fontSize: 15, fontWeight: "700", color: "#1A2B4A" },
-
-  // ── Jauge du jour ──
   gaugeSection: { alignItems: "center", marginBottom: 24 },
   gaugeLabel: {
     fontSize: 11,
@@ -427,8 +457,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     paddingHorizontal: 20,
   },
-
-  // ── Semaine ──
   weekCard: {
     backgroundColor: "#fff",
     borderRadius: 24,
@@ -454,10 +482,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   weekScore: { fontSize: 12, fontWeight: "700", color: BLUE },
-  weekDays: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
+  weekDays: { flexDirection: "row", justifyContent: "space-between" },
   dayItem: { alignItems: "center", gap: 6 },
   dayCircle: {
     width: 36,
@@ -476,16 +501,12 @@ const styles = StyleSheet.create({
   dayTextToday: { color: "#fff" },
   dayTextEmpty: { color: "#B0C4DE" },
   dayName: { fontSize: 10, color: "#9AAED4", fontWeight: "600" },
-
-  // ── Section title ──
   sectionTitle: {
     fontSize: 15,
     fontWeight: "700",
     color: "#1A2B4A",
     marginBottom: 14,
   },
-
-  // ── Carousel ──
   carousel: { gap: 12, paddingRight: 4 },
   appCard: {
     width: 150,
@@ -524,8 +545,6 @@ const styles = StyleSheet.create({
   progressFill: { height: "100%", borderRadius: 99 },
   appCardTime: { fontSize: 11, color: "#9AAED4", marginBottom: 6 },
   appCardTokens: { fontSize: 14, fontWeight: "700", color: BLUE },
-
-  // ── Empty ──
   emptyCard: {
     backgroundColor: "#fff",
     borderRadius: 20,

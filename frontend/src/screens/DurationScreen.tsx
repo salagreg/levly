@@ -183,7 +183,7 @@ export default function DurationScreen() {
                 onPress={handleFinish}
                 activeOpacity={0.85}
               >
-                <Text style={styles.finishButtonText}>Terminé ✓</Text>
+                <Text style={styles.finishButtonText}>Terminé</Text>
               </TouchableOpacity>
             </View>
           </>

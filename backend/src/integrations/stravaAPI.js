@@ -11,7 +11,7 @@ class StravaAPI {
     const params = new URLSearchParams({
       client_id: process.env.STRAVA_CLIENT_ID,
       redirect_uri:
-        "https://levly-backend-dev.onrender.com/api/strava/callback",
+        "https://levly.onrender.com/api/strava/callback",
       response_type: "code",
       approval_prompt: "auto",
       scope: "activity:read_all",

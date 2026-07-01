@@ -26,7 +26,7 @@ export const connectStrava = async () => {
     );
 
     const oauthToken = response.data.oauthToken;
-    const redirectUrl = "https://levly-backend-dev.onrender.com/api/strava/callback";
+    const redirectUrl = "https://levly.onrender.com/api/strava/callback";
     
     const result = await WebBrowser.openAuthSessionAsync(
       `${API_BASE_URL}/strava/connect?token=${oauthToken}`,

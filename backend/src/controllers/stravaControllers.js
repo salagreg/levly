@@ -136,8 +136,21 @@ class StravaController {
         console.log("✅ [Strava] Pilier réactivé");
       }
 
-      console.log("✅ [Strava] Callback terminé, redirect vers l'app");
-      res.redirect("https://levly.onrender.com/api/strava/callback?success=true");
+      console.log("✅ [Strava] Callback terminé");
+      return res.status(200).send(`
+        <!DOCTYPE html>
+        <html lang="fr">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+          </head>
+          <body style="font-family:-apple-system,Arial,sans-serif;text-align:center;padding:60px 24px;color:#1a2b4a">
+            <div style="font-size:64px">✅</div>
+            <h1 style="color:#5B7EBD">Strava connecté !</h1>
+            <p style="font-size:17px;line-height:1.5">Ta connexion a bien été enregistrée.<br>Tu peux fermer cette page et retourner dans Levly.</p>
+          </body>
+        </html>
+      `);
     } catch (error) {
       console.log("❌ [Strava] Erreur callback:", error.message);
       console.log("❌ [Strava] Stack:", error.stack);

@@ -26,19 +26,21 @@ export const connectStrava = async () => {
     );
 
     const oauthToken = response.data.oauthToken;
-    const redirectUrl = "https://levly.onrender.com/api/strava/callback";
-    
-    const result = await WebBrowser.openAuthSessionAsync(
-      `${API_BASE_URL}/strava/connect?token=${oauthToken}`,
-      redirectUrl
+
+    // Ouvre la page de connexion Strava.
+    // En Expo Go, le deep link de retour ne fonctionne pas, donc on ne se
+    // fie PAS au type de retour de la WebView : on vérifie directement en base.
+    await WebBrowser.openAuthSessionAsync(
+      `${API_BASE_URL}/strava/connect?token=${oauthToken}`
     );
 
-    if (result.type === "success" || result.type === "dismiss") {
+    // Après fermeture de la WebView, on demande le vrai statut au backend.
+    const status = await getConnectionStatus();
+
+    if (status.strava === true) {
       return { success: true };
-    } else if (result.type === "cancel") {
-      throw new Error("Connexion Strava annulée");
     } else {
-      throw new Error("Erreur lors de la connexion Strava");
+      throw new Error("La connexion Strava n'a pas pu être confirmée");
     }
   } catch (error) {
     console.error("Erreur connectStrava:", error);
